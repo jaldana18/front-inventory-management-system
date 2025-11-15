@@ -7,11 +7,47 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Diagnostic reports (https://nodejs.org/api/report.html)
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
 # Dependencies
-node_modules
+node_modules/
+jspm_packages/
 dist
 dist-ssr
 *.local
+
+# Coverage
+coverage
+*.lcov
+.nyc_output
+
+# Build outputs
+build
+build/Release
+*.tsbuildinfo
+
+# Optional npm/yarn/etc cache
+.npm
+.eslintcache
+.stylelintcache
+.yarn-integrity
+*.tgz
+
+# Environment variables
+.env
+.env.*
+!.env.example
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # Editor directories and files
 .vscode/*
@@ -23,18 +59,43 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+.vscode-test
 
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Build outputs
-build
-coverage
-*.tsbuildinfo
+# Framework specific
+.next
+.nuxt
+.cache
+.parcel-cache
+.svelte-kit/
+.docusaurus
+.serverless/
+.fusebox/
+.dynamodb/
+.firebase/
+.vitepress/dist
+.vitepress/cache
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
 
 # OS files
 Thumbs.db
+.DS_Store
+
+# Misc
+.node_repl_history
+.tern-port
+lib-cov
+.grunt
+bower_components
+.lock-wscript
+web_modules/
+out
+
+# Yarn v3
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
