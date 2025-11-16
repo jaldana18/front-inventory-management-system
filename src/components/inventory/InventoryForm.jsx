@@ -20,6 +20,7 @@ import {
   Close as CloseIcon,
   Inventory as InventoryIcon,
 } from '@mui/icons-material';
+import { useLanguage } from '../../context/LanguageContext';
 
 const inventorySchema = z.object({
   sku: z.string().min(1, 'SKU is required'),
@@ -44,6 +45,8 @@ const categories = [
 ];
 
 const InventoryForm = ({ open, onClose, onSubmit, initialData = null }) => {
+  const { t } = useLanguage();
+  
   const {
     control,
     handleSubmit,
@@ -106,12 +109,12 @@ const InventoryForm = ({ open, onClose, onSubmit, initialData = null }) => {
             </Box>
             <Box>
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                {initialData ? 'Edit Inventory Item' : 'Add New Item'}
+                {initialData ? t('editItem') || 'Edit Inventory Item' : t('createNewItem')}
               </Typography>
               <Typography variant="caption" color="text.secondary">
                 {initialData
-                  ? 'Update the details of your inventory item'
-                  : 'Add a new product to your inventory'}
+                  ? t('updateItemDetails') || 'Update the details of your inventory item'
+                  : t('addProductToInventory') || 'Add a new product to your inventory'}
               </Typography>
             </Box>
           </Box>
@@ -139,7 +142,7 @@ const InventoryForm = ({ open, onClose, onSubmit, initialData = null }) => {
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="SKU"
+                    label={t('sku')}
                     fullWidth
                     error={!!errors.sku}
                     helperText={errors.sku?.message}
@@ -155,7 +158,7 @@ const InventoryForm = ({ open, onClose, onSubmit, initialData = null }) => {
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="Product Name"
+                    label={t('name')}
                     fullWidth
                     error={!!errors.name}
                     helperText={errors.name?.message}
@@ -171,7 +174,7 @@ const InventoryForm = ({ open, onClose, onSubmit, initialData = null }) => {
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="Description"
+                    label={t('description')}
                     fullWidth
                     multiline
                     rows={3}
@@ -189,7 +192,7 @@ const InventoryForm = ({ open, onClose, onSubmit, initialData = null }) => {
                   <TextField
                     {...field}
                     select
-                    label="Category"
+                    label={t('category')}
                     fullWidth
                     error={!!errors.category}
                     helperText={errors.category?.message}
@@ -211,7 +214,7 @@ const InventoryForm = ({ open, onClose, onSubmit, initialData = null }) => {
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="Supplier"
+                    label={t('supplier') || 'Supplier'}
                     fullWidth
                     error={!!errors.supplier}
                     helperText={errors.supplier?.message}
@@ -226,7 +229,7 @@ const InventoryForm = ({ open, onClose, onSubmit, initialData = null }) => {
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="Quantity"
+                    label={t('quantity')}
                     type="number"
                     fullWidth
                     error={!!errors.quantity}
@@ -243,7 +246,7 @@ const InventoryForm = ({ open, onClose, onSubmit, initialData = null }) => {
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="Minimum Stock"
+                    label={t('minStock') || 'Minimum Stock'}
                     type="number"
                     fullWidth
                     error={!!errors.minStock}
@@ -260,7 +263,7 @@ const InventoryForm = ({ open, onClose, onSubmit, initialData = null }) => {
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="Unit Price"
+                    label={t('price')}
                     type="number"
                     fullWidth
                     error={!!errors.unitPrice}
@@ -282,7 +285,7 @@ const InventoryForm = ({ open, onClose, onSubmit, initialData = null }) => {
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="Location"
+                    label={t('location') || 'Location'}
                     fullWidth
                     error={!!errors.location}
                     helperText={errors.location?.message}
@@ -309,7 +312,7 @@ const InventoryForm = ({ open, onClose, onSubmit, initialData = null }) => {
               },
             }}
           >
-            Cancel
+            {t('cancel')}
           </Button>
           <Button
             type="submit"
@@ -323,7 +326,7 @@ const InventoryForm = ({ open, onClose, onSubmit, initialData = null }) => {
               },
             }}
           >
-            {initialData ? 'Update Item' : 'Create Item'}
+            {initialData ? t('edit') : t('add')}
           </Button>
         </DialogActions>
       </form>
