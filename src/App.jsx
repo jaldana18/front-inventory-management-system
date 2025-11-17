@@ -9,9 +9,13 @@ import DashboardPage from './pages/DashboardPage';
 import InventoryPage from './pages/InventoryPage';
 import ReportsPage from './pages/ReportsPage';
 import LoginPage from './pages/LoginPage';
+import UsersPage from './pages/UsersPage';
+import StockOverviewPage from './pages/StockOverviewPage';
+import WarehousesPage from './pages/WarehousesPage';
 import { AuthProvider } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { RoleBasedRoute } from './components/RoleBasedRoute';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,31 +45,82 @@ function App() {
                     </ProtectedRoute>
                   }
                 >
-                  <Route index element={<DashboardPage />} />
-                  <Route path="inventory" element={<InventoryPage />} />
-                  <Route path="reports" element={<ReportsPage />} />
+                  <Route
+                    index
+                    element={
+                      <RoleBasedRoute path="/">
+                        <DashboardPage />
+                      </RoleBasedRoute>
+                    }
+                  />
+                  <Route
+                    path="inventory"
+                    element={
+                      <RoleBasedRoute path="/inventory">
+                        <InventoryPage />
+                      </RoleBasedRoute>
+                    }
+                  />
+                  <Route
+                    path="stock-overview"
+                    element={
+                      <RoleBasedRoute path="/stock-overview">
+                        <StockOverviewPage />
+                      </RoleBasedRoute>
+                    }
+                  />
+                  <Route
+                    path="warehouses"
+                    element={
+                      <RoleBasedRoute path="/warehouses">
+                        <WarehousesPage />
+                      </RoleBasedRoute>
+                    }
+                  />
+                  <Route
+                    path="reports"
+                    element={
+                      <RoleBasedRoute path="/reports">
+                        <ReportsPage />
+                      </RoleBasedRoute>
+                    }
+                  />
                   <Route
                     path="orders"
                     element={
-                      <div className="text-center text-gray-500 mt-10">
-                        Orders page - Coming soon
-                      </div>
+                      <RoleBasedRoute path="/orders">
+                        <div className="text-center text-gray-500 mt-10">
+                          Página de órdenes/facturas - Próximamente
+                        </div>
+                      </RoleBasedRoute>
                     }
                   />
                   <Route
                     path="suppliers"
                     element={
-                      <div className="text-center text-gray-500 mt-10">
-                        Suppliers page - Coming soon
-                      </div>
+                      <RoleBasedRoute path="/suppliers">
+                        <div className="text-center text-gray-500 mt-10">
+                          Página de proveedores - Próximamente
+                        </div>
+                      </RoleBasedRoute>
                     }
                   />
                   <Route
                     path="settings"
                     element={
-                      <div className="text-center text-gray-500 mt-10">
-                        Settings page - Coming soon
-                      </div>
+                      <RoleBasedRoute path="/settings">
+                        <div className="text-center text-gray-500 mt-10">
+                          Página de configuración - Próximamente
+                        </div>
+                      </RoleBasedRoute>
+                    }
+                  />
+                  <Route
+                    path="users"
+                    element={
+                      <RoleBasedRoute path="/users">
+                        <UsersPage />
+                      </RoleBasedRoute>
                     }
                   />
                 </Route>

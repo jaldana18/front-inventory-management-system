@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Grid,
@@ -11,6 +12,14 @@ import {
   Stack,
   Skeleton,
   Alert,
+  Chip,
+  List,
+  ListItem,
+  ListItemText,
+  Divider,
+  IconButton,
+  Tooltip,
+  Button,
 } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
@@ -19,41 +28,49 @@ import {
   ShoppingCart as OrdersIcon,
   People as SuppliersIcon,
   AttachMoney as RevenueIcon,
+  Warehouse as WarehouseIcon,
+  Warning as WarningIcon,
+  Refresh as RefreshIcon,
+  ArrowForward as ArrowForwardIcon,
 } from '@mui/icons-material';
-import { inventoryService } from '../services/inventory.service';
+import { analyticsService } from '../services/analytics.service';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/useAuth';
 import StatsCard from '../components/common/StatsCard';
 
 const DashboardPage = () => {
   const { t } = useLanguage();
+  const { userRole, userWarehouseId } = useAuth();
+  const navigate = useNavigate();
 
-  // Fetch inventory data
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['dashboard-inventory'],
-    queryFn: () => inventoryService.getAll(),
+  // Fetch dashboard analytics
+  const { 
+    data: dashboardData, 
+    isLoading, 
+    error,
+    refetch 
+  } = useQuery({
+    queryKey: ['dashboard-analytics'],
+    queryFn: () => analyticsService.getDashboard(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Extract the data array from the API response
-  const inventoryData = useMemo(() => {
-    const rawData = data?.data?.items || data?.items || data?.data || [];
-    return Array.isArray(rawData) ? rawData : [];
-  }, [data]);
+  // Extract analytics data
+  const analytics = useMemo(() => {
+    return dashboardData?.data || null;
+  }, [dashboardData]);
 
-  const dashboardStats = useMemo(() => {
-    if (!inventoryData || inventoryData.length === 0) return null;
-
-    const totalProducts = inventoryData.length;
-    const categories = [...new Set(inventoryData.map((item) => item.category).filter(Boolean))].length;
-    const totalValue = 0; // Would need quantity data
-    const recentlyAdded = inventoryData.slice(0, 5); // Last 5 products
-
-    return {
-      totalProducts,
-      categories,
-      totalValue,
-      recentlyAdded,
-    };
-  }, [inventoryData]);
+  // Calculate warehouse-specific stats if user is warehouse-level
+  const warehouseStats = useMemo(() => {
+    if (!analytics || userRole !== 'user' || !userWarehouseId) return null;
+    
+    // Filter data for specific warehouse
+    const warehouseInventory = analytics.inventoryByWarehouse?.find(
+      w => w.warehouseId === userWarehouseId
+    );
+    
+    return warehouseInventory;
+  }, [analytics, userRole, userWarehouseId]);
 
   if (error) {
     return (
@@ -63,25 +80,39 @@ const DashboardPage = () => {
     );
   }
 
+  const handleRefresh = () => {
+    refetch();
+  };
+
   return (
     <Box>
       {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: 700,
-            mb: 1,
-            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-          }}
-        >
-          {t('dashboard')}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {t('welcomeToDashboard') || 'Welcome to your inventory dashboard'}
-        </Typography>
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 700,
+              mb: 1,
+              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
+            {t('dashboard')}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {userRole === 'user' && warehouseStats 
+              ? `${t('warehouseDashboard') || 'Warehouse Dashboard'}: ${warehouseStats.warehouseName}`
+              : t('welcomeToDashboard') || 'Overview of your inventory system'
+            }
+          </Typography>
+        </Box>
+        <Tooltip title={t('refresh') || 'Refresh'}>
+          <IconButton onClick={handleRefresh} disabled={isLoading}>
+            <RefreshIcon />
+          </IconButton>
+        </Tooltip>
       </Box>
 
       {/* Stats Cards */}
@@ -93,51 +124,52 @@ const DashboardPage = () => {
             </Grid>
           ))}
         </Grid>
-      ) : dashboardStats ? (
+      ) : analytics ? (
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12} sm={6} md={3}>
             <StatsCard
               title={t('totalProducts') || 'Total Products'}
-              value={dashboardStats.totalProducts}
-              subtitle={t('productsInInventory')}
+              value={analytics.totalProducts || 0}
+              subtitle={t('uniqueItems') || 'Unique items in system'}
               icon={InventoryIcon}
               color="primary"
             />
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
             <StatsCard
-              title={t('categories')}
-              value={dashboardStats.categories}
-              subtitle={t('categoriesInUse') || 'Categories in use'}
+              title={t('totalStock') || 'Total Stock'}
+              value={warehouseStats?.totalStock || analytics.totalStock || 0}
+              subtitle={t('unitsAvailable') || 'Units available'}
               icon={OrdersIcon}
               color="info"
+              trend={analytics.stockTrend}
             />
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
             <StatsCard
-              title={t('suppliers') || 'Suppliers'}
-              value={0}
-              subtitle={t('activeSuppliers') || 'Active suppliers'}
-              icon={SuppliersIcon}
+              title={t('warehouses') || 'Warehouses'}
+              value={analytics.totalWarehouses || 0}
+              subtitle={t('activeLocations') || 'Active locations'}
+              icon={WarehouseIcon}
               color="success"
             />
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
             <StatsCard
-              title={t('revenue') || 'Revenue'}
-              value="$0.00"
-              subtitle={t('monthlyRevenue') || 'This month'}
-              icon={RevenueIcon}
+              title={t('lowStockItems') || 'Low Stock'}
+              value={analytics.lowStockCount || 0}
+              subtitle={t('itemsNeedingAttention') || 'Items needing attention'}
+              icon={WarningIcon}
               color="warning"
             />
           </Grid>
         </Grid>
       ) : null}
 
-      {/* Recent Products Section */}
-      {dashboardStats && dashboardStats.recentlyAdded.length > 0 && (
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
+      {/* Warehouse Breakdown Section */}
+      {analytics && analytics.inventoryByWarehouse && analytics.inventoryByWarehouse.length > 0 && (
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid item xs={12} md={8}>
             <Paper
               sx={{
                 p: 3,
@@ -145,13 +177,22 @@ const DashboardPage = () => {
                 boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
               }}
             >
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
-                {t('recentProducts') || 'Recently Added Products'}
-              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  {t('stockByWarehouse') || 'Stock by Warehouse'}
+                </Typography>
+                <Button
+                  size="small"
+                  endIcon={<ArrowForwardIcon />}
+                  onClick={() => navigate('/stock-overview')}
+                >
+                  {t('viewAll') || 'View All'}
+                </Button>
+              </Box>
               <Stack spacing={2}>
-                {dashboardStats.recentlyAdded.map((product) => (
+                {analytics.inventoryByWarehouse.map((warehouse) => (
                   <Card
-                    key={product.id}
+                    key={warehouse.warehouseId}
                     sx={{
                       borderRadius: 2,
                       border: '1px solid #e2e8f0',
@@ -165,34 +206,105 @@ const DashboardPage = () => {
                   >
                     <CardContent sx={{ py: 2 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Box>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                            {product.name}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {t('sku')}: {product.sku} • {t('category')}: {product.category}
-                          </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <WarehouseIcon color="primary" />
+                          <Box>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                              {warehouse.warehouseName}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {warehouse.productCount} {t('products') || 'products'}
+                            </Typography>
+                          </Box>
                         </Box>
                         <Box sx={{ textAlign: 'right' }}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                            ${product.price?.toFixed(2) || '0.00'}
+                          <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                            {warehouse.totalStock.toLocaleString()}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            {t('price')}
+                            {t('units') || 'units'}
                           </Typography>
                         </Box>
                       </Box>
+                      {warehouse.lowStockCount > 0 && (
+                        <Box sx={{ mt: 2 }}>
+                          <Chip
+                            size="small"
+                            icon={<WarningIcon />}
+                            label={`${warehouse.lowStockCount} ${t('lowStockItems') || 'low stock items'}`}
+                            color="warning"
+                            variant="outlined"
+                          />
+                        </Box>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
               </Stack>
             </Paper>
           </Grid>
+
+          {/* Recent Activity / Low Stock Items */}
+          <Grid item xs={12} md={4}>
+            <Paper
+              sx={{
+                p: 3,
+                borderRadius: 3,
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+                height: '100%',
+              }}
+            >
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  {t('lowStockAlert') || 'Low Stock Alert'}
+                </Typography>
+                <Button
+                  size="small"
+                  onClick={() => navigate('/inventory')}
+                >
+                  {t('manage') || 'Manage'}
+                </Button>
+              </Box>
+              {analytics.lowStockItems && analytics.lowStockItems.length > 0 ? (
+                <List>
+                  {analytics.lowStockItems.slice(0, 5).map((item, index) => (
+                    <Box key={item.productId}>
+                      <ListItem sx={{ px: 0 }}>
+                        <ListItemText
+                          primary={item.productName}
+                          secondary={`${item.currentStock} ${t('unitsLeft') || 'units left'}`}
+                          primaryTypographyProps={{
+                            variant: 'body2',
+                            fontWeight: 500,
+                          }}
+                          secondaryTypographyProps={{
+                            variant: 'caption',
+                          }}
+                        />
+                        <Chip
+                          size="small"
+                          label={item.warehouseName}
+                          variant="outlined"
+                        />
+                      </ListItem>
+                      {index < Math.min(4, analytics.lowStockItems.length - 1) && <Divider />}
+                    </Box>
+                  ))}
+                </List>
+              ) : (
+                <Box sx={{ textAlign: 'center', py: 4 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    {t('noLowStockItems') || 'All products are well stocked'}
+                  </Typography>
+                </Box>
+              )}
+            </Paper>
+          </Grid>
         </Grid>
       )}
 
       {/* Empty State */}
-      {!isLoading && (!dashboardStats || inventoryData.length === 0) && (
+      {!isLoading && !analytics && (
         <Paper
           sx={{
             p: 8,
@@ -206,7 +318,7 @@ const DashboardPage = () => {
             {t('noDashboardData') || 'No data available yet'}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {t('startAddingItems')}
+            {t('startAddingItems') || 'Start by adding products and warehouses to your system'}
           </Typography>
         </Paper>
       )}

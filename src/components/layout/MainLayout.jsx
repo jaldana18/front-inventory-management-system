@@ -29,11 +29,15 @@ import {
   Notifications as NotificationsIcon,
   Search as SearchIcon,
   Logout as LogoutIcon,
+  ManageAccounts as ManageAccountsIcon,
+  Warehouse as WarehouseIcon,
+  ViewList as StockViewIcon,
 } from '@mui/icons-material';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/useAuth';
 import { useLanguage } from '../../context/LanguageContext';
 import LanguageIcon from '@mui/icons-material/Language';
+import { canViewMenuItem } from '../../config/roles.config';
 
 const drawerWidth = 260;
 
@@ -47,14 +51,22 @@ const MainLayout = () => {
   const { language, setLanguage, t } = useLanguage();
 
   // Create menu items with translations
-  const menuItems = [
-    { text: t('dashboard'), icon: <DashboardIcon />, path: '/' },
-    { text: t('inventory'), icon: <InventoryIcon />, path: '/inventory' },
-    { text: t('orders'), icon: <OrdersIcon />, path: '/orders' },
-    { text: t('suppliers'), icon: <SuppliersIcon />, path: '/suppliers' },
-    { text: t('reports'), icon: <ReportsIcon />, path: '/reports' },
-    { text: t('settings'), icon: <SettingsIcon />, path: '/settings' },
+  const allMenuItems = [
+    { id: 'dashboard', text: t('dashboard'), icon: <DashboardIcon />, path: '/' },
+    { id: 'inventory', text: t('inventory'), icon: <InventoryIcon />, path: '/inventory' },
+    { id: 'stock-overview', text: t('stockOverview') || 'Stock Overview', icon: <StockViewIcon />, path: '/stock-overview' },
+    { id: 'warehouses', text: t('warehouses') || 'Almacenes', icon: <WarehouseIcon />, path: '/warehouses' },
+    { id: 'orders', text: t('orders'), icon: <OrdersIcon />, path: '/orders' },
+    { id: 'suppliers', text: t('suppliers'), icon: <SuppliersIcon />, path: '/suppliers' },
+    { id: 'reports', text: t('reports'), icon: <ReportsIcon />, path: '/reports' },
+    { id: 'settings', text: t('settings'), icon: <SettingsIcon />, path: '/settings' },
+    { id: 'users', text: 'Usuarios', icon: <ManageAccountsIcon />, path: '/users' },
   ];
+
+  // Filter menu items based on user role
+  const menuItems = allMenuItems.filter((item) =>
+    canViewMenuItem(user?.role, item.id)
+  );
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);

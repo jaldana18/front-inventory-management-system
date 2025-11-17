@@ -94,7 +94,41 @@ export const inventoryService = {
     return Promise.reject(new Error('Use createTransaction instead of delete'));
   },
 
+  // ==================== MULTI-WAREHOUSE STOCK QUERIES ====================
+
+  // Get stock of a product across all warehouses
+  getProductStockAllWarehouses: async (productId) => {
+    return apiClient.get(`/inventory/stock/${productId}/warehouses`);
+  },
+
+  // Get stock of a product in a specific warehouse
+  getProductStockInWarehouse: async (productId, warehouseId) => {
+    return apiClient.get(`/inventory/stock/${productId}/warehouse/${warehouseId}`);
+  },
+
+  // Get warehouse summary (stats, products, recent transactions)
+  getWarehouseSummary: async (warehouseId) => {
+    return apiClient.get(`/inventory/warehouses/${warehouseId}/summary`);
+  },
+
+  // Get summary of all warehouses (admin/manager only)
+  getAllWarehousesSummary: async () => {
+    return apiClient.get('/inventory/warehouses/summary');
+  },
+
   // ==================== BULK OPERATIONS ====================
+
+  // Bulk inbound transaction (multiple products into one warehouse)
+  bulkInbound: async (data) => {
+    // Expected: { warehouseId, items: [{ productId, quantity, unitCost?, reference? }], reason, notes? }
+    return apiClient.post('/inventory/bulk/inbound', data);
+  },
+
+  // Bulk outbound transaction (multiple products from one warehouse)
+  bulkOutbound: async (data) => {
+    // Expected: { warehouseId, items: [{ productId, quantity, reference? }], reason, notes? }
+    return apiClient.post('/inventory/bulk/outbound', data);
+  },
 
   // Upload bulk inventory transactions from Excel file
   bulkUpload: async (file, options = {}) => {

@@ -17,6 +17,11 @@ export const userService = {
     return apiClient.get(API_ENDPOINTS.users.me);
   },
 
+  // Get user statistics
+  getStats: async () => {
+    return apiClient.get(API_ENDPOINTS.users.stats);
+  },
+
   // Create a new user
   create: async (data) => {
     // Expected data: { email, password, firstName, lastName, role?, companyId? }

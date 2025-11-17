@@ -88,6 +88,7 @@ export const API_ENDPOINTS = {
     getById: (id) => `/users/${id}`,
     update: (id) => `/users/${id}`,
     delete: (id) => `/users/${id}`,
+    stats: '/users/stats', // User statistics
     me: '/users/me', // Current user
     updateMe: '/users/me',
   },
