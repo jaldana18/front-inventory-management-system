@@ -25,6 +25,11 @@ export const API_ENDPOINTS = {
     delete: (id) => `/products/${id}`,
     categories: '/products/categories',
     search: (query) => `/products/search?query=${query}`,
+    // Bulk operations
+    bulkUpload: '/products/bulk/upload',
+    bulkValidate: '/products/bulk/validate',
+    bulkPreview: '/products/bulk/preview',
+    bulkTemplate: '/products/bulk/template',
   },
 
   // ==================== WAREHOUSES ====================
@@ -59,6 +64,11 @@ export const API_ENDPOINTS = {
     summary: '/inventory/summary',
     // Get all inventory with pagination - lists products with current stock
     list: '/products',
+    // Bulk operations
+    bulkUpload: '/inventory/bulk/upload',
+    bulkValidate: '/inventory/bulk/validate',
+    bulkPreview: '/inventory/bulk/preview',
+    bulkTemplate: '/inventory/bulk/template',
   },
 
   // ==================== COMPANIES ====================

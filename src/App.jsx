@@ -31,48 +31,48 @@ function App() {
         <LanguageProvider>
           <AuthProvider>
             <BrowserRouter>
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <MainLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<DashboardPage />} />
-                <Route path="inventory" element={<InventoryPage />} />
-                <Route path="reports" element={<ReportsPage />} />
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
                 <Route
-                  path="orders"
+                  path="/"
                   element={
-                    <div className="text-center text-gray-500 mt-10">
-                      Orders page - Coming soon
-                    </div>
+                    <ProtectedRoute>
+                      <MainLayout />
+                    </ProtectedRoute>
                   }
-                />
-                <Route
-                  path="suppliers"
-                  element={
-                    <div className="text-center text-gray-500 mt-10">
-                      Suppliers page - Coming soon
-                    </div>
-                  }
-                />
-                <Route
-                  path="settings"
-                  element={
-                    <div className="text-center text-gray-500 mt-10">
-                      Settings page - Coming soon
-                    </div>
-                  }
-                />
-              </Route>
-              <Route path="*" element={<Navigate to="/login" replace />} />
-            </Routes>
-          </BrowserRouter>
-        </AuthProvider>
+                >
+                  <Route index element={<DashboardPage />} />
+                  <Route path="inventory" element={<InventoryPage />} />
+                  <Route path="reports" element={<ReportsPage />} />
+                  <Route
+                    path="orders"
+                    element={
+                      <div className="text-center text-gray-500 mt-10">
+                        Orders page - Coming soon
+                      </div>
+                    }
+                  />
+                  <Route
+                    path="suppliers"
+                    element={
+                      <div className="text-center text-gray-500 mt-10">
+                        Suppliers page - Coming soon
+                      </div>
+                    }
+                  />
+                  <Route
+                    path="settings"
+                    element={
+                      <div className="text-center text-gray-500 mt-10">
+                        Settings page - Coming soon
+                      </div>
+                    }
+                  />
+                </Route>
+                <Route path="*" element={<Navigate to="/login" replace />} />
+              </Routes>
+            </BrowserRouter>
+          </AuthProvider>
         </LanguageProvider>
         <Toaster position="bottom-center" />
       </ThemeProvider>

@@ -936,6 +936,78 @@ const swaggerOptions: swaggerJsDoc.Options = {
             },
           },
         },
+        Category: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'integer',
+              description: 'Category ID',
+            },
+            companyId: {
+              type: 'integer',
+              description: 'Company ID',
+            },
+            name: {
+              type: 'string',
+              maxLength: 100,
+              description: 'Category name',
+            },
+            description: {
+              type: 'string',
+              maxLength: 500,
+              nullable: true,
+              description: 'Category description',
+            },
+            color: {
+              type: 'string',
+              maxLength: 50,
+              nullable: true,
+              description: 'Hex color for UI (e.g., #3B82F6)',
+              example: '#3B82F6',
+            },
+            icon: {
+              type: 'string',
+              maxLength: 50,
+              nullable: true,
+              description: 'Icon name for UI (e.g., laptop, box)',
+              example: 'laptop',
+            },
+            sortOrder: {
+              type: 'integer',
+              description: 'Sort order for display',
+              default: 0,
+            },
+            isActive: {
+              type: 'boolean',
+              description: 'Whether category is active',
+              default: true,
+            },
+            parentId: {
+              type: 'integer',
+              nullable: true,
+              description: 'Parent category ID for hierarchical categories',
+            },
+            parent: {
+              $ref: '#/components/schemas/Category',
+              nullable: true,
+              description: 'Parent category object',
+            },
+            productCount: {
+              type: 'integer',
+              description: 'Number of active products in this category',
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Creation timestamp',
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Last update timestamp',
+            },
+          },
+        },
         UserModel: {
           type: 'object',
           properties: {
@@ -1070,6 +1142,10 @@ const swaggerOptions: swaggerJsDoc.Options = {
         description: 'Product management endpoints',
       },
       {
+        name: 'Bulk Products',
+        description: 'Bulk product upload and management endpoints',
+      },
+      {
         name: 'Warehouses',
         description: 'Warehouse management endpoints',
       },
@@ -1078,12 +1154,20 @@ const swaggerOptions: swaggerJsDoc.Options = {
         description: 'Inventory transaction and stock management endpoints',
       },
       {
+        name: 'Bulk Inventory',
+        description: 'Bulk inventory upload operations (Excel-based)',
+      },
+      {
         name: 'Companies',
         description: 'Company management endpoints',
       },
       {
         name: 'Users',
         description: 'User management endpoints',
+      },
+      {
+        name: 'Categories',
+        description: 'Product category management endpoints',
       },
     ],
   },

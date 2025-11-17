@@ -129,7 +129,7 @@ const InventoryFilters = ({ filters, onFilterChange, categories = [] }) => {
           }}
         >
           <MenuItem value="name">Nombre</MenuItem>
-          <MenuItem value="sku">SKU</MenuItem>
+          <MenuItem value="sku">Código</MenuItem>
           <MenuItem value="price">Precio</MenuItem>
           <MenuItem value="createdAt">Fecha creación</MenuItem>
         </TextField>
@@ -201,8 +201,8 @@ const InventoryFilters = ({ filters, onFilterChange, categories = [] }) => {
             {/* Row 1: SKU and Status */}
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <TextField
-                label="SKU"
-                placeholder="Filtrar por SKU exacto"
+                label="Código"
+                placeholder="Filtrar por código exacto"
                 value={filters.sku || ''}
                 onChange={(e) => handleChange('sku', e.target.value)}
                 size="small"
@@ -345,7 +345,7 @@ const InventoryFilters = ({ filters, onFilterChange, categories = [] }) => {
                 )}
                 {filters.sku && (
                   <Chip
-                    label={`SKU: ${filters.sku}`}
+                    label={`Código: ${filters.sku}`}
                     size="small"
                     onDelete={() => handleChange('sku', '')}
                   />

@@ -35,7 +35,7 @@ const translations = {
     quantity: 'Cantidad',
     price: 'Precio',
     cost: 'Costo',
-    sku: 'SKU',
+    sku: 'Código',
     name: 'Nombre',
     description: 'Descripción',
     updatedAt: 'Actualizado',
@@ -53,7 +53,7 @@ const translations = {
 
     // Inventory
     inventoryManagement: 'Gestión de Inventario',
-    searchByNameOrSku: 'Buscar por nombre o SKU...',
+    searchByNameOrSku: 'Buscar por nombre o código...',
     totalItems: 'Total de Artículos',
     productsInInventory: 'Productos en inventario',
     inventoryValue: 'Valor del Inventario',
@@ -72,6 +72,8 @@ const translations = {
     failedToCreateItem: 'Error al crear el artículo',
     failedToUpdateItem: 'Error al actualizar el artículo',
     failedToDeleteItem: 'Error al eliminar el artículo',
+    bulkUpload: 'Carga masiva',
+    errorLoadingInventory: 'Error al cargar inventario',
 
     // Dashboard
     welcomeToDashboard: 'Bienvenido a tu panel de control de inventario',
@@ -130,6 +132,12 @@ const translations = {
     alerts: 'Alertas',
     calendar: 'Calendario',
     units: 'unidades',
+    daily: 'Diario',
+    monthly: 'Mensual',
+    yearly: 'Anual',
+    dateRange: 'Rango de fechas',
+    sortBy: 'Ordenar por',
+    order: 'Orden',
 
     // Language
     language: 'Idioma',
@@ -197,6 +205,8 @@ const translations = {
     failedToCreateItem: 'Failed to create item',
     failedToUpdateItem: 'Failed to update item',
     failedToDeleteItem: 'Failed to delete item',
+    bulkUpload: 'Bulk Upload',
+    errorLoadingInventory: 'Error loading inventory',
 
     // Dashboard
     welcomeToDashboard: 'Welcome to your inventory dashboard',

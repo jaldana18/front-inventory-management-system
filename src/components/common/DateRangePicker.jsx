@@ -31,6 +31,7 @@ import {
   addMonths,
   subMonths,
   subDays,
+  subYears,
   startOfDay,
   endOfDay,
   isWithinInterval,
@@ -45,6 +46,7 @@ const QUICK_PRESETS = [
   { label: 'Últimos 7 días', value: '7days' },
   { label: 'Últimos 30 días', value: '30days' },
   { label: 'Últimos 90 días', value: '90days' },
+  { label: 'Último año', value: '1year' },
   { label: 'Este mes', value: 'thisMonth' },
   { label: 'Mes pasado', value: 'lastMonth' },
 ];
@@ -150,6 +152,10 @@ const DateRangePicker = ({
         break;
       case '90days':
         start = subDays(today, 89);
+        end = today;
+        break;
+      case '1year':
+        start = subYears(today, 1);
         end = today;
         break;
       case 'thisMonth':

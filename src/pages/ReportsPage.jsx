@@ -55,7 +55,7 @@ const ReportsPage = () => {
   const { t } = useLanguage();
   const [selectedTab, setSelectedTab] = useState(0);
   const [dateRange, setDateRange] = useState('7days');
-  const [granularity, setGranularity] = useState('daily');
+  const [granularity, setGranularity] = useState('day');
   const [startDate, setStartDate] = useState(format(subDays(new Date(), 7), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
@@ -293,10 +293,10 @@ const ReportsPage = () => {
                       },
                     }}
                   >
-                    <MenuItem value="hourly">{t('hourly') || 'Hourly'}</MenuItem>
-                    <MenuItem value="daily">{t('daily') || 'Daily'}</MenuItem>
-                    <MenuItem value="weekly">{t('weekly') || 'Weekly'}</MenuItem>
-                    <MenuItem value="monthly">{t('monthly') || 'Monthly'}</MenuItem>
+                    <MenuItem value="day">{t('daily') || 'Daily'}</MenuItem>
+                    <MenuItem value="week">{t('weekly') || 'Weekly'}</MenuItem>
+                    <MenuItem value="month">{t('monthly') || 'Monthly'}</MenuItem>
+                    <MenuItem value="year">{t('yearly') || 'Yearly'}</MenuItem>
                   </TextField>
                 </Grid>
               </Grid>

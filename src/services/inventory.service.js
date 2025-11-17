@@ -1,5 +1,6 @@
+import axios from 'axios';
 import apiClient from './api.service';
-import { API_ENDPOINTS } from '../config/api.config';
+import { API_ENDPOINTS, API_CONFIG } from '../config/api.config';
 
 export const inventoryService = {
   // ==================== INVENTORY MANAGEMENT ====================
@@ -91,5 +92,82 @@ export const inventoryService = {
     // This would require more context in a real app
     console.warn('Delete operation not directly supported for inventory. Use create transaction instead.');
     return Promise.reject(new Error('Use createTransaction instead of delete'));
+  },
+
+  // ==================== BULK OPERATIONS ====================
+
+  // Upload bulk inventory transactions from Excel file
+  bulkUpload: async (file, options = {}) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    if (options.updateExisting !== undefined) {
+      formData.append('updateExisting', options.updateExisting.toString());
+    }
+    if (options.skipErrors !== undefined) {
+      formData.append('skipErrors', options.skipErrors.toString());
+    }
+    if (options.dryRun !== undefined) {
+      formData.append('dryRun', options.dryRun.toString());
+    }
+
+    return apiClient.post(API_ENDPOINTS.inventory.bulkUpload, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+
+  // Validate Excel file structure
+  bulkValidate: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    return apiClient.post(API_ENDPOINTS.inventory.bulkValidate, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+
+  // Preview bulk upload without saving
+  bulkPreview: async (file, updateExisting = false) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('updateExisting', updateExisting.toString());
+
+    return apiClient.post(API_ENDPOINTS.inventory.bulkPreview, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+
+  // Download Excel template
+  downloadTemplate: async () => {
+    // Use axios directly to avoid the response interceptor that returns response.data
+    const token = localStorage.getItem('accessToken');
+
+    const response = await axios.get(
+      `${API_CONFIG.baseURL}${API_ENDPOINTS.inventory.bulkTemplate}`,
+      {
+        responseType: 'blob',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    // Create download link
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'plantilla-inventario.xlsx');
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+
+    return response;
   },
 };

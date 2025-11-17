@@ -167,7 +167,7 @@ const InventoryTable = ({ data, onEdit, onDelete, onView }) => {
                 </TableCell>
                 <TableCell align="right" sx={{ pr: 1.5, py: 0.75 }}>
                   <Stack direction="row" spacing={0.25} justifyContent="flex-end">
-                    <Tooltip title="Edit">
+                    <Tooltip title={t('edit')}>
                       <IconButton
                         size="small"
                         onClick={(e) => {
@@ -185,7 +185,7 @@ const InventoryTable = ({ data, onEdit, onDelete, onView }) => {
                         <EditIcon sx={{ fontSize: 16 }} />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title="Delete">
+                    <Tooltip title={t('delete')}>
                       <IconButton
                         size="small"
                         onClick={(e) => {

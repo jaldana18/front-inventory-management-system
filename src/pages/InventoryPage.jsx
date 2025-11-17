@@ -16,11 +16,15 @@ import {
   TrendingDown as LowStockIcon,
   AttachMoney as ValueIcon,
   Category as CategoryIcon,
+  CloudUpload as UploadIcon,
 } from '@mui/icons-material';
 import toast from 'react-hot-toast';
 import InventoryTable from '../components/inventory/InventoryTable';
 import InventoryForm from '../components/inventory/InventoryForm';
 import InventoryFilters from '../components/inventory/InventoryFilters';
+import BulkUploadDialog from '../components/inventory/BulkUploadDialog';
+import BulkInventoryUploadDialog from '../components/inventory/BulkInventoryUploadDialog';
+import BulkUploadSelector from '../components/inventory/BulkUploadSelector';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import ExportButton from '../components/common/ExportButton';
 import PrintButton from '../components/common/PrintButton';
@@ -47,6 +51,9 @@ const InventoryPage = () => {
   const [selectedItem, setSelectedItem] = useState(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
+  const [bulkUploadSelectorOpen, setBulkUploadSelectorOpen] = useState(false);
+  const [bulkUploadProductOpen, setBulkUploadProductOpen] = useState(false);
+  const [bulkUploadInventoryOpen, setBulkUploadInventoryOpen] = useState(false);
 
   const queryClient = useQueryClient();
   const { setItems } = useInventoryStore();
@@ -185,7 +192,7 @@ const InventoryPage = () => {
   if (error) {
     return (
       <Alert severity="error" sx={{ borderRadius: 2 }}>
-        Error loading inventory: {error.message}
+        {t('errorLoadingInventory')}: {error.message}
       </Alert>
     );
   }
@@ -227,6 +234,23 @@ const InventoryPage = () => {
             }}
           >
             {t('createNewItem')}
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<UploadIcon />}
+            onClick={() => setBulkUploadSelectorOpen(true)}
+            sx={{
+              px: 3,
+              py: 1.25,
+              borderColor: '#6366f1',
+              color: '#6366f1',
+              '&:hover': {
+                borderColor: '#4f46e5',
+                backgroundColor: 'rgba(99, 102, 241, 0.05)',
+              },
+            }}
+          >
+            {t('bulkUpload') || 'Carga masiva'}
           </Button>
           <ExportButton data={inventoryData} fileName="inventory.csv" />
           <PrintButton data={inventoryData} title={t('inventory')} />
@@ -315,6 +339,31 @@ const InventoryPage = () => {
         onCancel={handleCancelDelete}
         isLoading={deleteMutation.isPending}
         color="error"
+      />
+
+      <BulkUploadSelector
+        open={bulkUploadSelectorOpen}
+        onClose={() => setBulkUploadSelectorOpen(false)}
+        onSelectProduct={() => setBulkUploadProductOpen(true)}
+        onSelectInventory={() => setBulkUploadInventoryOpen(true)}
+      />
+
+      <BulkUploadDialog
+        open={bulkUploadProductOpen}
+        onClose={() => setBulkUploadProductOpen(false)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['inventory'] });
+          setBulkUploadProductOpen(false);
+        }}
+      />
+
+      <BulkInventoryUploadDialog
+        open={bulkUploadInventoryOpen}
+        onClose={() => setBulkUploadInventoryOpen(false)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['inventory'] });
+          setBulkUploadInventoryOpen(false);
+        }}
       />
     </Box>
   );
