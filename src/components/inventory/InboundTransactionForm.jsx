@@ -14,8 +14,13 @@ import {
   FormHelperText,
   CircularProgress,
   Alert,
+  Box,
+  Typography,
+  Divider,
+  Grid,
+  InputAdornment,
 } from '@mui/material';
-import { useAuth } from '../context/useAuth';
+import { useAuth } from '../../context/useAuth';
 import { inventoryService } from '../../services/inventory.service';
 import { productService } from '../../services/product.service';
 import { warehouseService } from '../../services/warehouse.service';
@@ -36,6 +41,20 @@ export default function InboundTransactionForm({ open, onClose, onSuccess }) {
   const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
+
+  // Currency formatting functions - flexible for any currency
+  const formatCurrency = (value) => {
+    if (!value && value !== 0) return '';
+    return new Intl.NumberFormat('es-CO', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(value);
+  };
+
+  const parseCurrency = (value) => {
+    if (!value) return '';
+    return value.toString().replace(/[^0-9.]/g, '');
+  };
 
   const {
     control,
@@ -69,14 +88,19 @@ export default function InboundTransactionForm({ open, onClose, onSuccess }) {
     try {
       const [productsRes, warehousesRes] = await Promise.all([
         productService.getAll({ isActive: true }),
-        warehouseService.getActive(),
+        warehouseService.getAll(),
       ]);
 
-      setProducts(productsRes.data || []);
+      // Extract products from API response structure
+      const productsData = productsRes?.data?.items || productsRes?.items || productsRes?.data || [];
+      setProducts(Array.isArray(productsData) ? productsData : []);
+
+      // Extract warehouses from API response structure
+      const warehousesData = warehousesRes?.data?.items || warehousesRes?.items || warehousesRes?.data || [];
 
       // Filter warehouses based on user role
       const accessibleWarehouses = getAccessibleWarehouses(
-        warehousesRes.data || [],
+        Array.isArray(warehousesData) ? warehousesData : [],
         userRole,
         userWarehouseId
       );
@@ -85,6 +109,9 @@ export default function InboundTransactionForm({ open, onClose, onSuccess }) {
       // Auto-select warehouse for users
       if (userRole === ROLES.USER && userWarehouseId) {
         setValue('warehouseId', userWarehouseId);
+      } else if (accessibleWarehouses.length === 1) {
+        // Auto-select if only one warehouse available
+        setValue('warehouseId', accessibleWarehouses[0].id);
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -139,187 +166,289 @@ export default function InboundTransactionForm({ open, onClose, onSuccess }) {
   const isUserRole = userRole === ROLES.USER;
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Nueva Entrada de Inventario</DialogTitle>
+    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+      <DialogTitle>
+        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+          Nueva Entrada de Inventario
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          Registra la entrada de productos al almacén
+        </Typography>
+      </DialogTitle>
 
       <form onSubmit={handleSubmit(onSubmit)}>
         <DialogContent>
           {loadingData ? (
-            <div className="flex justify-center py-8">
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
               <CircularProgress />
-            </div>
+            </Box>
           ) : (
-            <div className="space-y-4">
-              {/* Product Selection */}
-              <Controller
-                name="productId"
-                control={control}
-                rules={{ required: 'Producto es requerido' }}
-                render={({ field }) => (
-                  <FormControl fullWidth error={!!errors.productId}>
-                    <InputLabel>Producto</InputLabel>
-                    <Select {...field} label="Producto">
-                      <MenuItem value="">
-                        <em>Seleccionar producto</em>
-                      </MenuItem>
-                      {products.map((product) => (
-                        <MenuItem key={product.id} value={product.id}>
-                          {product.name} ({product.sku})
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {errors.productId && (
-                      <FormHelperText>{errors.productId.message}</FormHelperText>
+            <Box sx={{ pt: 1 }}>
+              {/* Información Básica */}
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ mb: 2 }}>
+                Información Básica
+              </Typography>
+
+              <Grid container spacing={2} sx={{ mb: 3 }}>
+                {/* Product Selection */}
+                <Grid item xs={12} md={6}>
+                  <Controller
+                    name="productId"
+                    control={control}
+                    rules={{ required: 'Producto es requerido' }}
+                    render={({ field }) => (
+                      <FormControl error={!!errors.productId} sx={{ width: '100%', minWidth: 300 }}>
+                        <InputLabel>Producto *</InputLabel>
+                        <Select
+                          {...field}
+                          label="Producto *"
+                          sx={{ minWidth: 300 }}
+                          MenuProps={{
+                            PaperProps: {
+                              style: {
+                                maxHeight: 300,
+                              },
+                            },
+                          }}
+                        >
+                          <MenuItem value="">
+                            <em>Seleccionar producto</em>
+                          </MenuItem>
+                          {products.map((product) => (
+                            <MenuItem key={product.id} value={product.id}>
+                              {product.name} ({product.sku})
+                            </MenuItem>
+                          ))}
+                        </Select>
+                        {errors.productId && (
+                          <FormHelperText>{errors.productId.message}</FormHelperText>
+                        )}
+                      </FormControl>
                     )}
-                  </FormControl>
-                )}
-              />
+                  />
+                </Grid>
 
-              {/* Warehouse Selection */}
-              <Controller
-                name="warehouseId"
-                control={control}
-                rules={{ required: 'Almacén es requerido' }}
-                render={({ field }) => (
-                  <FormControl fullWidth error={!!errors.warehouseId}>
-                    <InputLabel>Almacén</InputLabel>
-                    <Select
-                      {...field}
-                      label="Almacén"
-                      disabled={isUserRole} // Disabled for users
-                    >
-                      <MenuItem value="">
-                        <em>Seleccionar almacén</em>
-                      </MenuItem>
-                      {warehouses.map((warehouse) => (
-                        <MenuItem key={warehouse.id} value={warehouse.id}>
-                          {warehouse.name} ({warehouse.code})
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {errors.warehouseId && (
-                      <FormHelperText>{errors.warehouseId.message}</FormHelperText>
+                {/* Warehouse Selection */}
+                <Grid item xs={12} md={6}>
+                  <Controller
+                    name="warehouseId"
+                    control={control}
+                    rules={{ required: 'Almacén es requerido' }}
+                    render={({ field }) => (
+                      <FormControl error={!!errors.warehouseId} sx={{ width: '100%', minWidth: 300 }}>
+                        <InputLabel>Almacén *</InputLabel>
+                        <Select
+                          {...field}
+                          label="Almacén *"
+                          disabled={isUserRole}
+                          sx={{ minWidth: 300 }}
+                          MenuProps={{
+                            PaperProps: {
+                              style: {
+                                maxHeight: 300,
+                              },
+                            },
+                          }}
+                        >
+                          <MenuItem value="">
+                            <em>Seleccionar almacén</em>
+                          </MenuItem>
+                          {warehouses.map((warehouse) => (
+                            <MenuItem key={warehouse.id} value={warehouse.id}>
+                              {warehouse.name} ({warehouse.code})
+                            </MenuItem>
+                          ))}
+                        </Select>
+                        {errors.warehouseId && (
+                          <FormHelperText>{errors.warehouseId.message}</FormHelperText>
+                        )}
+                        {isUserRole && (
+                          <FormHelperText>Asignado automáticamente a tu almacén</FormHelperText>
+                        )}
+                      </FormControl>
                     )}
-                  </FormControl>
-                )}
-              />
+                  />
+                </Grid>
 
-              {/* Reason */}
-              <Controller
-                name="reason"
-                control={control}
-                rules={{ required: 'Motivo es requerido' }}
-                render={({ field }) => (
-                  <FormControl fullWidth error={!!errors.reason}>
-                    <InputLabel>Motivo</InputLabel>
-                    <Select {...field} label="Motivo">
-                      {INBOUND_REASONS.map((reason) => (
-                        <MenuItem key={reason.value} value={reason.value}>
-                          {reason.label}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {errors.reason && (
-                      <FormHelperText>{errors.reason.message}</FormHelperText>
+                {/* Reason */}
+                <Grid item xs={12} md={6}>
+                  <Controller
+                    name="reason"
+                    control={control}
+                    rules={{ required: 'Motivo es requerido' }}
+                    render={({ field }) => (
+                      <FormControl error={!!errors.reason} sx={{ width: '100%', minWidth: 250 }}>
+                        <InputLabel>Motivo *</InputLabel>
+                        <Select
+                          {...field}
+                          label="Motivo *"
+                          sx={{ minWidth: 250 }}
+                          MenuProps={{
+                            PaperProps: {
+                              style: {
+                                maxHeight: 300,
+                              },
+                            },
+                          }}
+                        >
+                          {INBOUND_REASONS.map((reason) => (
+                            <MenuItem key={reason.value} value={reason.value}>
+                              {reason.label}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                        {errors.reason && (
+                          <FormHelperText>{errors.reason.message}</FormHelperText>
+                        )}
+                      </FormControl>
                     )}
-                  </FormControl>
-                )}
-              />
-
-              {/* Quantity */}
-              <Controller
-                name="quantity"
-                control={control}
-                rules={{
-                  required: 'Cantidad es requerida',
-                  min: { value: 1, message: 'Cantidad debe ser mayor a 0' },
-                }}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="Cantidad"
-                    type="number"
-                    fullWidth
-                    error={!!errors.quantity}
-                    helperText={errors.quantity?.message}
-                    InputProps={{ inputProps: { min: 1 } }}
                   />
-                )}
-              />
+                </Grid>
 
-              {/* Unit Cost (Optional) */}
-              <Controller
-                name="unitCost"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="Costo Unitario (Opcional)"
-                    type="number"
-                    fullWidth
-                    InputProps={{ inputProps: { min: 0, step: 0.01 } }}
+                {/* Quantity */}
+                <Grid item xs={12} md={6}>
+                  <Controller
+                    name="quantity"
+                    control={control}
+                    rules={{
+                      required: 'Cantidad es requerida',
+                      min: { value: 1, message: 'Cantidad debe ser mayor a 0' },
+                    }}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label="Cantidad *"
+                        type="number"
+                        fullWidth
+                        error={!!errors.quantity}
+                        helperText={errors.quantity?.message}
+                        InputProps={{ inputProps: { min: 1 } }}
+                      />
+                    )}
                   />
-                )}
-              />
+                </Grid>
+              </Grid>
 
-              {/* Reference */}
-              <Controller
-                name="reference"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="Referencia/Factura (Opcional)"
-                    fullWidth
-                    placeholder="FAC-12345"
-                  />
-                )}
-              />
+              <Divider sx={{ my: 2 }} />
 
-              {/* Location */}
-              <Controller
-                name="location"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="Ubicación (Opcional)"
-                    fullWidth
-                    placeholder="Estante A-12"
-                  />
-                )}
-              />
+              {/* Información Financiera */}
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ mb: 2 }}>
+                Información Financiera
+              </Typography>
 
-              {/* Notes */}
-              <Controller
-                name="notes"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="Notas (Opcional)"
-                    fullWidth
-                    multiline
-                    rows={3}
-                    placeholder="Detalles adicionales..."
+              <Grid container spacing={2} sx={{ mb: 3 }}>
+                {/* Unit Cost */}
+                <Grid item xs={12} md={6}>
+                  <Controller
+                    name="unitCost"
+                    control={control}
+                    render={({ field: { onChange, value, ...field } }) => (
+                      <TextField
+                        {...field}
+                        value={value ? formatCurrency(value) : ''}
+                        onChange={(e) => {
+                          const numericValue = parseCurrency(e.target.value);
+                          onChange(numericValue);
+                        }}
+                        label="Costo Unitario"
+                        fullWidth
+                        InputProps={{
+                          startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                        }}
+                        helperText="Opcional - Costo por unidad (acepta decimales)"
+                        placeholder="0"
+                      />
+                    )}
                   />
-                )}
-              />
-            </div>
+                </Grid>
+
+                {/* Reference */}
+                <Grid item xs={12} md={6}>
+                  <Controller
+                    name="reference"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label="Referencia/Factura"
+                        fullWidth
+                        placeholder="FAC-12345"
+                        helperText="Opcional - Número de factura o referencia"
+                      />
+                    )}
+                  />
+                </Grid>
+              </Grid>
+
+              <Divider sx={{ my: 2 }} />
+
+              {/* Información de Ubicación */}
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ mb: 2 }}>
+                Información Adicional
+              </Typography>
+
+              <Grid container spacing={2}>
+                {/* Location */}
+                <Grid item xs={12}>
+                  <Controller
+                    name="location"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label="Ubicación en Almacén"
+                        fullWidth
+                        placeholder="Estante A-12, Pasillo 3"
+                        helperText="Opcional - Ubicación física del producto"
+                      />
+                    )}
+                  />
+                </Grid>
+
+                {/* Notes */}
+                <Grid item xs={12}>
+                  <Controller
+                    name="notes"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label="Notas"
+                        fullWidth
+                        multiline
+                        rows={3}
+                        placeholder="Detalles adicionales sobre esta entrada..."
+                        helperText="Opcional - Información adicional relevante"
+                      />
+                    )}
+                  />
+                </Grid>
+              </Grid>
+            </Box>
           )}
         </DialogContent>
 
-        <DialogActions>
-          <Button onClick={handleClose} disabled={loading}>
+        <DialogActions sx={{ px: 3, pb: 3, pt: 2 }}>
+          <Button onClick={handleClose} disabled={loading} sx={{ mr: 1 }}>
             Cancelar
           </Button>
           <Button
             type="submit"
             variant="contained"
             disabled={loading || loadingData}
-            startIcon={loading && <CircularProgress size={20} />}
+            startIcon={loading && <CircularProgress size={20} color="inherit" />}
+            sx={{
+              px: 3,
+              background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+              },
+              '&:disabled': {
+                background: 'rgba(16, 185, 129, 0.5)',
+              },
+            }}
           >
-            {loading ? 'Guardando...' : 'Guardar Entrada'}
+            {loading ? 'Registrando...' : 'Registrar Entrada'}
           </Button>
         </DialogActions>
       </form>

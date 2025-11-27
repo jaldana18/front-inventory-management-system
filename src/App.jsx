@@ -12,6 +12,7 @@ import LoginPage from './pages/LoginPage';
 import UsersPage from './pages/UsersPage';
 import StockOverviewPage from './pages/StockOverviewPage';
 import WarehousesPage from './pages/WarehousesPage';
+import InvoicingPage from './pages/InvoicingPage';
 import { AuthProvider } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -89,9 +90,7 @@ function App() {
                     path="orders"
                     element={
                       <RoleBasedRoute path="/orders">
-                        <div className="text-center text-gray-500 mt-10">
-                          Página de órdenes/facturas - Próximamente
-                        </div>
+                        <InvoicingPage />
                       </RoleBasedRoute>
                     }
                   />

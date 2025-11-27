@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -9,6 +10,10 @@ import {
   CircularProgress,
   Stack,
   Skeleton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -17,6 +22,8 @@ import {
   AttachMoney as ValueIcon,
   Category as CategoryIcon,
   CloudUpload as UploadIcon,
+  WarningAmber as WarningIcon,
+  MoveToInbox as LoadInventoryIcon,
 } from '@mui/icons-material';
 import toast from 'react-hot-toast';
 import InventoryTable from '../components/inventory/InventoryTable';
@@ -25,11 +32,13 @@ import InventoryFilters from '../components/inventory/InventoryFilters';
 import BulkUploadDialog from '../components/inventory/BulkUploadDialog';
 import BulkInventoryUploadDialog from '../components/inventory/BulkInventoryUploadDialog';
 import BulkUploadSelector from '../components/inventory/BulkUploadSelector';
+import InboundTransactionForm from '../components/inventory/InboundTransactionForm';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import ExportButton from '../components/common/ExportButton';
 import PrintButton from '../components/common/PrintButton';
 import StatsCard from '../components/common/StatsCard';
 import { inventoryService } from '../services/inventory.service';
+import { warehouseService } from '../services/warehouse.service';
 import { useInventoryStore } from '../store/inventoryStore';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -54,8 +63,11 @@ const InventoryPage = () => {
   const [bulkUploadSelectorOpen, setBulkUploadSelectorOpen] = useState(false);
   const [bulkUploadProductOpen, setBulkUploadProductOpen] = useState(false);
   const [bulkUploadInventoryOpen, setBulkUploadInventoryOpen] = useState(false);
+  const [inventoryLoadFormOpen, setInventoryLoadFormOpen] = useState(false);
+  const [noWarehousesDialogOpen, setNoWarehousesDialogOpen] = useState(false);
 
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { setItems } = useInventoryStore();
   const { t } = useLanguage();
 
@@ -77,6 +89,25 @@ const InventoryPage = () => {
 
     return params;
   };
+
+  // Validate warehouses on component mount
+  useEffect(() => {
+    const checkWarehouses = async () => {
+      try {
+        const response = await warehouseService.getAll();
+        const warehouses = response?.data?.items || [];
+
+        if (warehouses.length === 0) {
+          setNoWarehousesDialogOpen(true);
+        }
+      } catch (error) {
+        console.error('Error checking warehouses:', error);
+        toast.error('Error al verificar almacenes');
+      }
+    };
+
+    checkWarehouses();
+  }, []);
 
   // Fetch inventory data with filters
   const { data, isLoading, error } = useQuery({
@@ -236,6 +267,23 @@ const InventoryPage = () => {
             {t('createNewItem')}
           </Button>
           <Button
+            variant="contained"
+            startIcon={<LoadInventoryIcon />}
+            onClick={() => setInventoryLoadFormOpen(true)}
+            sx={{
+              px: 3,
+              py: 1.25,
+              background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                boxShadow: '0 6px 16px rgba(16, 185, 129, 0.35)',
+              },
+            }}
+          >
+            {t('loadInventory') || 'Cargar Inventario'}
+          </Button>
+          <Button
             variant="outlined"
             startIcon={<UploadIcon />}
             onClick={() => setBulkUploadSelectorOpen(true)}
@@ -365,6 +413,55 @@ const InventoryPage = () => {
           setBulkUploadInventoryOpen(false);
         }}
       />
+
+      <InboundTransactionForm
+        open={inventoryLoadFormOpen}
+        onClose={() => setInventoryLoadFormOpen(false)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['inventory'] });
+          setInventoryLoadFormOpen(false);
+          toast.success('Inventario cargado exitosamente');
+        }}
+      />
+
+      {/* No Warehouses Warning Dialog */}
+      <Dialog
+        open={noWarehousesDialogOpen}
+        onClose={() => {}}
+        maxWidth="sm"
+        fullWidth
+        disableEscapeKeyDown
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <WarningIcon color="warning" sx={{ fontSize: 32 }} />
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            Almacenes requeridos
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            <Typography variant="body1">
+              Se requiere tener al menos un almacén creado para poder gestionar el inventario.
+            </Typography>
+          </Alert>
+          <Typography variant="body2" color="text.secondary">
+            Por favor, cree al menos un almacén en la sección de Gestión de Almacenes antes de
+            continuar con la gestión de inventario.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button
+            variant="contained"
+            onClick={() => {
+              setNoWarehousesDialogOpen(false);
+              navigate('/warehouses');
+            }}
+            fullWidth
+          >
+            Ir a Gestión de Almacenes
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

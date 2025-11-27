@@ -73,6 +73,7 @@ const translations = {
     failedToUpdateItem: 'Error al actualizar el artículo',
     failedToDeleteItem: 'Error al eliminar el artículo',
     bulkUpload: 'Carga masiva',
+    loadInventory: 'Cargar Inventario',
     errorLoadingInventory: 'Error al cargar inventario',
 
     // Dashboard
@@ -169,6 +170,13 @@ const translations = {
     activeLocations: 'Ubicaciones activas',
     lowStockItems: 'Stock Bajo',
     itemsNeedingAttention: 'Artículos que necesitan atención',
+    occupancy: 'Ocupación',
+    viewAll: 'Ver Todo',
+    lowStockAlert: 'Alerta de Stock Bajo',
+    manage: 'Gestionar',
+    unitsLeft: 'unidades restantes',
+    noLowStockItems: 'Todos los productos tienen stock suficiente',
+    warehouseDashboard: 'Panel de Almacén',
 
     // Warehouses
     warehouseManagement: 'Gestión de Almacenes',
@@ -216,6 +224,13 @@ const translations = {
     saving: 'Guardando...',
     update: 'Actualizar',
     create: 'Crear',
+    address: 'Dirección',
+    city: 'Ciudad',
+    department: 'Departamento',
+    selectCountry: 'Seleccione un país',
+    selectDepartment: 'Seleccione un departamento',
+    selectCity: 'Seleccione una ciudad',
+    zipCodeOptional: 'Opcional',
 
     // Language
     language: 'Idioma',
@@ -284,6 +299,7 @@ const translations = {
     failedToUpdateItem: 'Failed to update item',
     failedToDeleteItem: 'Failed to delete item',
     bulkUpload: 'Bulk Upload',
+    loadInventory: 'Load Inventory',
     errorLoadingInventory: 'Error loading inventory',
 
     // Dashboard
@@ -380,6 +396,13 @@ const translations = {
     activeLocations: 'Active locations',
     lowStockItems: 'Low Stock',
     itemsNeedingAttention: 'Items needing attention',
+    occupancy: 'Occupancy',
+    viewAll: 'View All',
+    lowStockAlert: 'Low Stock Alert',
+    manage: 'Manage',
+    unitsLeft: 'units left',
+    noLowStockItems: 'All products are well stocked',
+    warehouseDashboard: 'Warehouse Dashboard',
 
     // Warehouses
     warehouseManagement: 'Warehouse Management',
@@ -427,6 +450,13 @@ const translations = {
     saving: 'Saving...',
     update: 'Update',
     create: 'Create',
+    address: 'Address',
+    city: 'City',
+    department: 'Department',
+    selectCountry: 'Select a country',
+    selectDepartment: 'Select a department',
+    selectCity: 'Select a city',
+    zipCodeOptional: 'Optional',
 
     // Language
     language: 'Language',

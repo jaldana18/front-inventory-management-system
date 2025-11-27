@@ -98,7 +98,23 @@ const InventoryForm = ({ open, onClose, onSubmit, initialData = null }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [tags, setTags] = useState([]);
   const [currentTag, setCurrentTag] = useState('');
-  
+
+  // Funciones de formato de moneda
+  const formatCurrency = (value) => {
+    if (!value && value !== 0) return '';
+    return new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  const parseCurrency = (value) => {
+    if (!value) return 0;
+    return parseFloat(value.toString().replace(/[^0-9.-]/g, '')) || 0;
+  };
+
   const {
     control,
     handleSubmit,
@@ -132,8 +148,42 @@ const InventoryForm = ({ open, onClose, onSubmit, initialData = null }) => {
 
   useEffect(() => {
     if (initialData) {
-      reset(initialData);
-      setTags(initialData.tags || []);
+      // Mapear datos del backend a los campos del formulario
+      const mappedData = {
+        sku: initialData.sku || '',
+        name: initialData.name || '',
+        description: initialData.description || '',
+        category: initialData.category || '',
+        quantity: initialData.currentStock || initialData.quantity || 0,
+        minStock: initialData.minimumStock || initialData.minStock || 0,
+        unitPrice: initialData.price || initialData.unitPrice || 0,
+        cost: initialData.cost || 0,
+        supplier: initialData.supplier || '',
+        location: initialData.location || '',
+        unit: initialData.unitOfMeasure || initialData.unit || 'piece',
+        isActive: initialData.isActive !== undefined ? initialData.isActive : true,
+        tags: initialData.tags || [],
+      };
+      reset(mappedData);
+      setTags(mappedData.tags);
+    } else {
+      // Resetear a valores por defecto cuando initialData es null
+      reset({
+        sku: '',
+        name: '',
+        description: '',
+        category: '',
+        quantity: 0,
+        minStock: 0,
+        unitPrice: 0,
+        cost: 0,
+        supplier: '',
+        location: '',
+        unit: 'piece',
+        isActive: true,
+        tags: [],
+      });
+      setTags([]);
     }
   }, [initialData, reset]);
 
@@ -365,18 +415,22 @@ const InventoryForm = ({ open, onClose, onSubmit, initialData = null }) => {
               <Controller
                 name="cost"
                 control={control}
-                render={({ field }) => (
+                render={({ field: { onChange, value, ...field } }) => (
                   <TextField
                     {...field}
+                    value={value ? formatCurrency(value).replace('COP', '').trim() : ''}
+                    onChange={(e) => {
+                      const numericValue = parseCurrency(e.target.value);
+                      onChange(numericValue);
+                    }}
                     label="Costo Unitario"
-                    type="number"
                     fullWidth
                     error={!!errors.cost}
                     helperText={errors.cost?.message || 'Costo de adquisición del producto'}
                     InputProps={{
                       startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                      inputProps: { step: '0.01', min: '0' }
                     }}
+                    placeholder="0"
                   />
                 )}
               />
@@ -386,19 +440,23 @@ const InventoryForm = ({ open, onClose, onSubmit, initialData = null }) => {
               <Controller
                 name="unitPrice"
                 control={control}
-                render={({ field }) => (
+                render={({ field: { onChange, value, ...field } }) => (
                   <TextField
                     {...field}
+                    value={value ? formatCurrency(value).replace('COP', '').trim() : ''}
+                    onChange={(e) => {
+                      const numericValue = parseCurrency(e.target.value);
+                      onChange(numericValue);
+                    }}
                     label="Precio de Venta"
-                    type="number"
                     fullWidth
                     error={!!errors.unitPrice}
                     helperText={errors.unitPrice?.message}
                     required
                     InputProps={{
                       startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                      inputProps: { step: '0.01', min: '0.01' }
                     }}
+                    placeholder="0"
                   />
                 )}
               />

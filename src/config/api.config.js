@@ -110,4 +110,17 @@ export const API_ENDPOINTS = {
     categoryPerformance: '/analytics/categories/performance',
     inventoryStatus: '/analytics/inventory/status',
   },
+
+  // ==================== INVOICES ====================
+  invoices: {
+    list: '/invoices',
+    create: '/invoices',
+    getById: (id) => `/invoices/${id}`,
+    update: (id) => `/invoices/${id}`,
+    delete: (id) => `/invoices/${id}`,
+    summary: '/invoices/summary',
+    updatePaymentStatus: (id) => `/invoices/${id}/payment-status`,
+    exportPDF: (id) => `/invoices/${id}/pdf`,
+    sendEmail: (id) => `/invoices/${id}/send-email`,
+  },
 };

@@ -12,8 +12,13 @@ import {
   Box,
   Typography,
   Divider,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
 } from '@mui/material';
 import { useLanguage } from '../../context/LanguageContext';
+import { countries, colombiaDepartments, colombiaCities } from '../../data/colombiaData';
 
 export default function WarehouseFormDialog({ open, warehouse, onClose, onSubmit, isLoading }) {
   const { t } = useLanguage();
@@ -69,12 +74,51 @@ export default function WarehouseFormDialog({ open, warehouse, onClose, onSubmit
     setErrors({});
   }, [warehouse, open]);
 
+  const formatPhoneNumber = (value) => {
+    // Remover todo excepto números
+    const numbers = value.replace(/\D/g, '');
+
+    // Formato para Colombia: +57 (XXX) XXX-XXXX
+    if (numbers.length <= 2) return numbers;
+    if (numbers.length <= 5) return `+57 (${numbers.slice(2)})`;
+    if (numbers.length <= 8) return `+57 (${numbers.slice(2, 5)}) ${numbers.slice(5)}`;
+    return `+57 (${numbers.slice(2, 5)}) ${numbers.slice(5, 8)}-${numbers.slice(8, 12)}`;
+  };
+
   const handleChange = (e) => {
     const { name, value, checked, type } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
+
+    // Si cambia el país, resetear state y city
+    if (name === 'country') {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+        state: '',
+        city: '',
+      }));
+    }
+    // Si cambia el departamento (state), resetear city
+    else if (name === 'state') {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+        city: '',
+      }));
+    }
+    // Formatear teléfono para Colombia
+    else if (name === 'phone') {
+      const formattedPhone = formatPhoneNumber(value);
+      setFormData((prev) => ({
+        ...prev,
+        [name]: formattedPhone,
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value,
+      }));
+    }
+
     // Clear error when user types
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
@@ -180,35 +224,87 @@ export default function WarehouseFormDialog({ open, warehouse, onClose, onSubmit
               {t('locationInformation') || 'Información de Ubicación'}
             </Typography>
             <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label={t('address') || 'Dirección'}
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  placeholder={t('addressPlaceholder') || 'Calle Principal 123'}
-                />
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>{t('country') || 'País'}</InputLabel>
+                  <Select
+                    name="country"
+                    value={formData.country}
+                    onChange={handleChange}
+                    label={t('country') || 'País'}
+                  >
+                    <MenuItem value="">
+                      <em>{t('selectCountry') || 'Seleccione un país'}</em>
+                    </MenuItem>
+                    {countries.map((country) => (
+                      <MenuItem key={country.code} value={country.code}>
+                        {country.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label={t('city') || 'Ciudad'}
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
-                  placeholder={t('cityPlaceholder') || 'Ciudad'}
-                />
+                {formData.country === 'CO' ? (
+                  <FormControl fullWidth>
+                    <InputLabel>{t('department') || 'Departamento'}</InputLabel>
+                    <Select
+                      name="state"
+                      value={formData.state}
+                      onChange={handleChange}
+                      label={t('department') || 'Departamento'}
+                    >
+                      <MenuItem value="">
+                        <em>{t('selectDepartment') || 'Seleccione un departamento'}</em>
+                      </MenuItem>
+                      {colombiaDepartments.map((dept) => (
+                        <MenuItem key={dept.code} value={dept.code}>
+                          {dept.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                ) : (
+                  <TextField
+                    fullWidth
+                    label={t('state') || 'Estado/Provincia'}
+                    name="state"
+                    value={formData.state}
+                    onChange={handleChange}
+                    placeholder={t('statePlaceholder') || 'Estado'}
+                  />
+                )}
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label={t('state') || 'Estado/Provincia'}
-                  name="state"
-                  value={formData.state}
-                  onChange={handleChange}
-                  placeholder={t('statePlaceholder') || 'Estado'}
-                />
+                {formData.country === 'CO' && formData.state ? (
+                  <FormControl fullWidth>
+                    <InputLabel>{t('city') || 'Ciudad'}</InputLabel>
+                    <Select
+                      name="city"
+                      value={formData.city}
+                      onChange={handleChange}
+                      label={t('city') || 'Ciudad'}
+                    >
+                      <MenuItem value="">
+                        <em>{t('selectCity') || 'Seleccione una ciudad'}</em>
+                      </MenuItem>
+                      {colombiaCities[formData.state]?.map((city) => (
+                        <MenuItem key={city} value={city}>
+                          {city}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                ) : (
+                  <TextField
+                    fullWidth
+                    label={t('city') || 'Ciudad'}
+                    name="city"
+                    value={formData.city}
+                    onChange={handleChange}
+                    placeholder={t('cityPlaceholder') || 'Ciudad'}
+                  />
+                )}
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
@@ -218,16 +314,17 @@ export default function WarehouseFormDialog({ open, warehouse, onClose, onSubmit
                   value={formData.zip}
                   onChange={handleChange}
                   placeholder="12345"
+                  helperText={t('zipCodeOptional') || 'Opcional'}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label={t('country') || 'País'}
-                  name="country"
-                  value={formData.country}
+                  label={t('address') || 'Dirección'}
+                  name="address"
+                  value={formData.address}
                   onChange={handleChange}
-                  placeholder={t('countryPlaceholder') || 'País'}
+                  placeholder={t('addressPlaceholder') || 'Calle Principal 123'}
                 />
               </Grid>
             </Grid>
@@ -246,7 +343,9 @@ export default function WarehouseFormDialog({ open, warehouse, onClose, onSubmit
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  placeholder="+1 234 567 8900"
+                  placeholder="+57 (300) 123-4567"
+                  inputProps={{ maxLength: 19 }}
+                  helperText="Formato: +57 (XXX) XXX-XXXX"
                 />
               </Grid>
               <Grid item xs={12} sm={6}>

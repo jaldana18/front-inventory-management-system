@@ -256,20 +256,26 @@ const BulkInventoryUploadDialog = ({ open, onClose, onSuccess }) => {
                         sx={{ mr: 1, mb: 1 }}
                       />
                     )}
+                    {preview.summary.productsToCreate > 0 && (
+                      <Chip
+                        label={`${preview.summary.productsToCreate} productos a crear`}
+                        color="primary"
+                        size="small"
+                        sx={{ mr: 1, mb: 1 }}
+                      />
+                    )}
                     <Chip
-                      label={`${preview.summary.willCreate} transacciones`}
-                      color="primary"
+                      label={`Cantidad total: ${preview.summary.totalQuantity}`}
+                      color="info"
                       size="small"
                       sx={{ mr: 1, mb: 1 }}
                     />
-                    {preview.summary.willUpdate > 0 && (
-                      <Chip
-                        label={`${preview.summary.willUpdate} ajustes`}
-                        color="info"
-                        size="small"
-                        sx={{ mb: 1 }}
-                      />
-                    )}
+                    <Chip
+                      label={`Costo total: $${preview.summary.totalCost?.toLocaleString('es-CO')}`}
+                      color="secondary"
+                      size="small"
+                      sx={{ mb: 1 }}
+                    />
                   </Box>
                 </Alert>
 
@@ -299,7 +305,7 @@ const BulkInventoryUploadDialog = ({ open, onClose, onSuccess }) => {
                                 <ErrorIcon color="error" fontSize="small" />
                               </ListItemIcon>
                               <ListItemText
-                                primary={`Fila ${error.row}: ${error.field}`}
+                                primary={`Fila ${error.row}${error.sku ? `: SKU ${error.sku}` : ''}`}
                                 secondary={error.message}
                               />
                             </ListItem>
@@ -312,25 +318,21 @@ const BulkInventoryUploadDialog = ({ open, onClose, onSuccess }) => {
 
                 <Divider sx={{ my: 2 }} />
 
-                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                  Vista previa (primeros 10 registros):
-                </Typography>
-
-                {preview.preview.toCreate.length > 0 && (
+                {preview.createdProducts && preview.createdProducts.length > 0 && (
                   <Box sx={{ mb: 2 }}>
-                    <Typography variant="caption" color="primary" sx={{ fontWeight: 600 }}>
-                      Transacciones a crear:
+                    <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
+                      Productos que se crearán:
                     </Typography>
-                    <Paper sx={{ mt: 1, maxHeight: 200, overflow: 'auto' }}>
+                    <Paper sx={{ mt: 1, maxHeight: 200, overflow: 'auto', bgcolor: 'primary.50' }}>
                       <List dense>
-                        {preview.preview.toCreate.map((transaction, idx) => (
+                        {preview.createdProducts.map((product, idx) => (
                           <ListItem key={idx}>
                             <ListItemIcon>
                               <CheckIcon color="primary" fontSize="small" />
                             </ListItemIcon>
                             <ListItemText
-                              primary={`${transaction.productSku || transaction.productName}`}
-                              secondary={`Tipo: ${transaction.type} - Cantidad: ${transaction.quantity} - Almacén: ${transaction.warehouseCode || 'Principal'}`}
+                              primary={product.name}
+                              secondary={`SKU: ${product.sku}`}
                             />
                           </ListItem>
                         ))}
@@ -339,27 +341,19 @@ const BulkInventoryUploadDialog = ({ open, onClose, onSuccess }) => {
                   </Box>
                 )}
 
-                {preview.preview.toUpdate && preview.preview.toUpdate.length > 0 && (
-                  <Box>
-                    <Typography variant="caption" color="info.main" sx={{ fontWeight: 600 }}>
-                      Ajustes de inventario:
+                {preview.summary.validRows > 0 && (
+                  <Alert severity="info" sx={{ mt: 2 }}>
+                    <Typography variant="body2">
+                      Se procesarán {preview.summary.validRows} filas válidas con un total de{' '}
+                      {preview.summary.totalQuantity} unidades por un costo de{' '}
+                      ${preview.summary.totalCost?.toLocaleString('es-CO')}.
                     </Typography>
-                    <Paper sx={{ mt: 1, maxHeight: 200, overflow: 'auto' }}>
-                      <List dense>
-                        {preview.preview.toUpdate.map((transaction, idx) => (
-                          <ListItem key={idx}>
-                            <ListItemIcon>
-                              <WarningIcon color="info" fontSize="small" />
-                            </ListItemIcon>
-                            <ListItemText
-                              primary={`${transaction.productSku || transaction.productName}`}
-                              secondary={`Tipo: ${transaction.type} - Cantidad: ${transaction.quantity} - Almacén: ${transaction.warehouseCode || 'Principal'}`}
-                            />
-                          </ListItem>
-                        ))}
-                      </List>
-                    </Paper>
-                  </Box>
+                    {preview.summary.productsAffected > 0 && (
+                      <Typography variant="body2" sx={{ mt: 1 }}>
+                        Se afectarán {preview.summary.productsAffected} producto(s) existente(s).
+                      </Typography>
+                    )}
+                  </Alert>
                 )}
               </>
             )}
@@ -399,7 +393,10 @@ const BulkInventoryUploadDialog = ({ open, onClose, onSuccess }) => {
                           <ListItemIcon>
                             <ErrorIcon color="error" fontSize="small" />
                           </ListItemIcon>
-                          <ListItemText primary={`Fila ${error.row}: ${error.field}`} secondary={error.message} />
+                          <ListItemText
+                            primary={`Fila ${error.row}${error.sku ? `: SKU ${error.sku}` : ''}`}
+                            secondary={error.message}
+                          />
                         </ListItem>
                       ))}
                     </List>
