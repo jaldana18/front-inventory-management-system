@@ -60,8 +60,8 @@ export const API_ENDPOINTS = {
     transfer: '/inventory/transfer',
     // Get low stock products
     lowStock: '/products?lowStock=true',
-    // Get inventory summary
-    summary: '/inventory/summary',
+    // Get inventory summary - uses analytics dashboard
+    summary: '/analytics/inventory/status',
     // Get all inventory with pagination - lists products with current stock
     list: '/products',
     // Bulk operations
@@ -122,5 +122,45 @@ export const API_ENDPOINTS = {
     updatePaymentStatus: (id) => `/invoices/${id}/payment-status`,
     exportPDF: (id) => `/invoices/${id}/pdf`,
     sendEmail: (id) => `/invoices/${id}/send-email`,
+  },
+
+  // ==================== CUSTOMERS ====================
+  customers: {
+    list: '/customers',
+    create: '/customers',
+    getById: (id) => `/customers/${id}`,
+    update: (id) => `/customers/${id}`,
+    delete: (id) => `/customers/${id}`,
+    search: '/customers/search',
+  },
+
+  // ==================== SALES ====================
+  sales: {
+    list: '/sales',
+    create: '/sales',
+    getById: (id) => `/sales/${id}`,
+    update: (id) => `/sales/${id}`,
+    confirm: (id) => `/sales/${id}/confirm`,
+    cancel: (id) => `/sales/${id}/cancel`,
+    convertToInvoice: (id) => `/sales/${id}/convert-to-invoice`,
+    createCreditNote: (id) => `/sales/${id}/credit-note`,
+    dispatch: (id) => `/sales/${id}/dispatch`,
+    deliver: (id) => `/sales/${id}/deliver`,
+    remission: '/sales/remission',
+  },
+
+  // ==================== PAYMENTS ====================
+  payments: {
+    list: '/payments',
+    create: '/payments',
+    getBySale: (saleId) => `/payments/sale/${saleId}`,
+    refund: (id) => `/payments/${id}/refund`,
+    summary: '/payments/summary',
+  },
+
+  // ==================== PAYMENT METHODS ====================
+  paymentMethods: {
+    list: '/payment-methods',
+    getById: (id) => `/payment-methods/${id}`,
   },
 };

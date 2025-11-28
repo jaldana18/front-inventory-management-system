@@ -32,6 +32,10 @@ import {
   ManageAccounts as ManageAccountsIcon,
   Warehouse as WarehouseIcon,
   ViewList as StockViewIcon,
+  PointOfSale as SalesIcon,
+  Groups as CustomersIcon,
+  Receipt as InvoiceIcon,
+  History as AuditIcon,
 } from '@mui/icons-material';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/useAuth';
@@ -56,9 +60,11 @@ const MainLayout = () => {
     { id: 'inventory', text: t('inventory'), icon: <InventoryIcon />, path: '/inventory' },
     { id: 'stock-overview', text: t('stockOverview') || 'Stock Overview', icon: <StockViewIcon />, path: '/stock-overview' },
     { id: 'warehouses', text: t('warehouses') || 'Almacenes', icon: <WarehouseIcon />, path: '/warehouses' },
-    { id: 'orders', text: t('orders'), icon: <OrdersIcon />, path: '/orders' },
+    { id: 'sales', text: t('sales') || 'Ventas', icon: <SalesIcon />, path: '/sales' },
+    { id: 'customers', text: t('customers') || 'Clientes', icon: <CustomersIcon />, path: '/customers' },
     { id: 'suppliers', text: t('suppliers'), icon: <SuppliersIcon />, path: '/suppliers' },
     { id: 'reports', text: t('reports'), icon: <ReportsIcon />, path: '/reports' },
+    { id: 'audit-logs', text: t('auditLogs') || 'Auditoría', icon: <AuditIcon />, path: '/audit-logs' },
     { id: 'settings', text: t('settings'), icon: <SettingsIcon />, path: '/settings' },
     { id: 'users', text: 'Usuarios', icon: <ManageAccountsIcon />, path: '/users' },
   ];

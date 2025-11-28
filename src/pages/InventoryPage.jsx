@@ -120,11 +120,18 @@ const InventoryPage = () => {
     },
   });
 
+  // Fetch inventory summary/statistics
+  const { data: summaryData, isLoading: summaryLoading } = useQuery({
+    queryKey: ['inventory-summary'],
+    queryFn: () => inventoryService.getSummary(),
+  });
+
   // Create mutation
   const createMutation = useMutation({
     mutationFn: (data) => inventoryService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-summary'] });
       toast.success(t('itemCreatedSuccessfully'));
     },
     onError: (error) => {
@@ -137,6 +144,7 @@ const InventoryPage = () => {
     mutationFn: ({ id, data }) => inventoryService.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-summary'] });
       toast.success(t('itemUpdatedSuccessfully'));
     },
     onError: (error) => {
@@ -149,6 +157,7 @@ const InventoryPage = () => {
     mutationFn: (id) => inventoryService.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-summary'] });
       toast.success(t('itemDeletedSuccessfully'));
     },
     onError: (error) => {
@@ -195,7 +204,29 @@ const InventoryPage = () => {
   // Extract the data array from the API response
   // API returns { success: true, data: { items: [...], pagination: {...} } }
   const rawData = data?.data?.items || data?.items || data?.data || [];
-  const inventoryData = Array.isArray(rawData) ? rawData : [];
+
+  // Process inventory data to calculate total stock
+  const inventoryData = useMemo(() => {
+    const items = Array.isArray(rawData) ? rawData : [];
+
+    return items.map((product) => {
+      // Calculate total stock from stock array if available
+      let totalStock = 0;
+
+      if (product.stock && Array.isArray(product.stock)) {
+        totalStock = product.stock.reduce((sum, s) => sum + (s.currentStock || 0), 0);
+      } else if (product.quantity !== undefined) {
+        totalStock = product.quantity || 0;
+      } else if (product.currentStock !== undefined) {
+        totalStock = product.currentStock || 0;
+      }
+
+      return {
+        ...product,
+        totalStock,
+      };
+    });
+  }, [rawData]);
 
   // Categories for filter dropdown
   const categories = useMemo(() => {
@@ -203,22 +234,50 @@ const InventoryPage = () => {
   }, [inventoryData]);
 
   const stats = useMemo(() => {
+    // Use backend summary data if available
+    if (summaryData?.data?.summary) {
+      return {
+        totalItems: summaryData.data.summary.totalProducts || 0,
+        lowStockItems: summaryData.data.summary.lowStockCount || 0,
+        outOfStock: summaryData.data.summary.criticalStockCount || 0,
+        totalValue: summaryData.data.summary.totalValue || 0,
+        categories: categories.length,
+      };
+    }
+
+    // Fallback to client-side calculation if backend data not available
     if (!inventoryData || inventoryData.length === 0) return null;
 
     const totalItems = inventoryData.length;
-    const lowStockItems = 0; // Products don't have quantity field, would need separate stock endpoint
-    const outOfStock = 0;
-    const totalValue = 0; // Need quantity data to calculate
-    const categories = [...new Set(inventoryData.map((item) => item.category).filter(Boolean))].length;
+
+    // Calculate low stock items (stock below minimumStock)
+    const lowStockItems = inventoryData.filter((item) => {
+      const totalStock = item.totalStock || 0;
+      const minStock = item.minimumStock || 0;
+      return totalStock > 0 && totalStock <= minStock;
+    }).length;
+
+    // Calculate out of stock items (stock = 0)
+    const outOfStock = inventoryData.filter((item) => {
+      const totalStock = item.totalStock || 0;
+      return totalStock === 0;
+    }).length;
+
+    // Calculate total inventory value
+    const totalValue = inventoryData.reduce((sum, item) => {
+      const stock = item.totalStock || 0;
+      const price = item.price || 0;
+      return sum + (stock * price);
+    }, 0);
 
     return {
       totalItems,
       lowStockItems,
       outOfStock,
       totalValue,
-      categories,
+      categories: categories.length,
     };
-  }, [inventoryData]);
+  }, [inventoryData, summaryData, categories]);
 
   if (error) {
     return (
@@ -305,7 +364,7 @@ const InventoryPage = () => {
         </Stack>
       </Stack>
 
-      {isLoading ? (
+      {isLoading || summaryLoading ? (
         <Grid container spacing={2} sx={{ mb: 3 }}>
           {[1, 2, 3, 4].map((i) => (
             <Grid item xs={12} sm={6} md={3} key={i}>
@@ -401,6 +460,7 @@ const InventoryPage = () => {
         onClose={() => setBulkUploadProductOpen(false)}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['inventory'] });
+          queryClient.invalidateQueries({ queryKey: ['inventory-summary'] });
           setBulkUploadProductOpen(false);
         }}
       />
@@ -410,6 +470,7 @@ const InventoryPage = () => {
         onClose={() => setBulkUploadInventoryOpen(false)}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['inventory'] });
+          queryClient.invalidateQueries({ queryKey: ['inventory-summary'] });
           setBulkUploadInventoryOpen(false);
         }}
       />
@@ -419,6 +480,7 @@ const InventoryPage = () => {
         onClose={() => setInventoryLoadFormOpen(false)}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['inventory'] });
+          queryClient.invalidateQueries({ queryKey: ['inventory-summary'] });
           setInventoryLoadFormOpen(false);
           toast.success('Inventario cargado exitosamente');
         }}

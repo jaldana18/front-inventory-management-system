@@ -13,6 +13,9 @@ import UsersPage from './pages/UsersPage';
 import StockOverviewPage from './pages/StockOverviewPage';
 import WarehousesPage from './pages/WarehousesPage';
 import InvoicingPage from './pages/InvoicingPage';
+import CustomersPage from './pages/CustomersPage';
+import SalesPage from './pages/SalesPage';
+import AuditLogsPage from './pages/AuditLogsPage';
 import { AuthProvider } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -79,18 +82,34 @@ function App() {
                     }
                   />
                   <Route
-                    path="reports"
+                    path="sales"
                     element={
-                      <RoleBasedRoute path="/reports">
-                        <ReportsPage />
+                      <RoleBasedRoute path="/sales">
+                        <SalesPage />
                       </RoleBasedRoute>
                     }
                   />
                   <Route
-                    path="orders"
+                    path="customers"
                     element={
-                      <RoleBasedRoute path="/orders">
-                        <InvoicingPage />
+                      <RoleBasedRoute path="/customers">
+                        <CustomersPage />
+                      </RoleBasedRoute>
+                    }
+                  />
+                  <Route
+                    path="invoicing"
+                    element={<Navigate to="/sales?tab=invoice" replace />}
+                  />
+                  <Route
+                    path="orders"
+                    element={<Navigate to="/sales?tab=quote" replace />}
+                  />
+                  <Route
+                    path="reports"
+                    element={
+                      <RoleBasedRoute path="/reports">
+                        <ReportsPage />
                       </RoleBasedRoute>
                     }
                   />
@@ -119,6 +138,14 @@ function App() {
                     element={
                       <RoleBasedRoute path="/users">
                         <UsersPage />
+                      </RoleBasedRoute>
+                    }
+                  />
+                  <Route
+                    path="audit-logs"
+                    element={
+                      <RoleBasedRoute path="/audit-logs">
+                        <AuditLogsPage />
                       </RoleBasedRoute>
                     }
                   />

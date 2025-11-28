@@ -21,11 +21,15 @@ export const ROUTE_PERMISSIONS = {
   '/inventory': [ROLES.ADMIN, ROLES.MANAGER, ROLES.USER], // Inventory
   '/stock-overview': [ROLES.ADMIN, ROLES.MANAGER, ROLES.USER], // Stock Overview
   '/warehouses': [ROLES.ADMIN, ROLES.MANAGER], // Warehouses
+  '/sales': [ROLES.ADMIN, ROLES.MANAGER, ROLES.USER], // Sales
+  '/customers': [ROLES.ADMIN, ROLES.MANAGER, ROLES.USER], // Customers
+  '/invoicing': [ROLES.ADMIN, ROLES.MANAGER, ROLES.USER], // Invoicing
   '/orders': [ROLES.ADMIN, ROLES.MANAGER, ROLES.USER], // Orders/Invoices (pending)
   '/suppliers': [ROLES.ADMIN, ROLES.MANAGER], // Suppliers
   '/reports': [ROLES.ADMIN, ROLES.MANAGER], // Reports
   '/settings': [ROLES.ADMIN, ROLES.MANAGER], // Settings
   '/users': [ROLES.ADMIN], // User Administration (pending)
+  '/audit-logs': [ROLES.ADMIN, ROLES.MANAGER], // Audit Logs
 };
 
 /**
@@ -53,6 +57,21 @@ export const MENU_ITEMS_CONFIG = [
     roles: [ROLES.ADMIN, ROLES.MANAGER],
   },
   {
+    id: 'sales',
+    path: '/sales',
+    roles: [ROLES.ADMIN, ROLES.MANAGER, ROLES.USER],
+  },
+  {
+    id: 'customers',
+    path: '/customers',
+    roles: [ROLES.ADMIN, ROLES.MANAGER, ROLES.USER],
+  },
+  {
+    id: 'invoicing',
+    path: '/invoicing',
+    roles: [ROLES.ADMIN, ROLES.MANAGER, ROLES.USER],
+  },
+  {
     id: 'orders',
     path: '/orders',
     roles: [ROLES.ADMIN, ROLES.MANAGER, ROLES.USER],
@@ -76,6 +95,11 @@ export const MENU_ITEMS_CONFIG = [
     id: 'users',
     path: '/users',
     roles: [ROLES.ADMIN],
+  },
+  {
+    id: 'audit-logs',
+    path: '/audit-logs',
+    roles: [ROLES.ADMIN, ROLES.MANAGER],
   },
 ];
 

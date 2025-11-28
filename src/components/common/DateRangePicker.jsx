@@ -474,3 +474,4 @@ const DateRangePicker = ({
 };
 
 export default DateRangePicker;
+export { DateRangePicker };

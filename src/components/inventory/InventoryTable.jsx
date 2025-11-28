@@ -147,7 +147,7 @@ const InventoryTable = ({ data, onEdit, onDelete, onView }) => {
                       fontSize: '0.8rem',
                     }}
                   >
-                    {item.currentStock ? item.currentStock : 0}
+                    {item.totalStock !== undefined ? item.totalStock : 0}
                   </Typography>
                 </TableCell>
                 <TableCell align="right" sx={{ py: 0.75 }}>
