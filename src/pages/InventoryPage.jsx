@@ -28,6 +28,7 @@ import {
 import toast from 'react-hot-toast';
 import InventoryTable from '../components/inventory/InventoryTable';
 import InventoryForm from '../components/inventory/InventoryForm';
+import ProductFormModal from '../components/inventory/ProductFormModal';
 import InventoryFilters from '../components/inventory/InventoryFilters';
 import BulkUploadDialog from '../components/inventory/BulkUploadDialog';
 import BulkInventoryUploadDialog from '../components/inventory/BulkInventoryUploadDialog';
@@ -431,7 +432,7 @@ const InventoryPage = () => {
         />
       )}
 
-      <InventoryForm
+      <ProductFormModal
         open={formOpen}
         onClose={handleCloseForm}
         onSubmit={handleSubmit}

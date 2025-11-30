@@ -16,7 +16,6 @@ const AuditLogsPage = () => {
     page: 1,
     limit: 50,
     sortOrder: 'desc',
-    type: ['business_operation'],
   });
   const [selectedLog, setSelectedLog] = useState(null);
 

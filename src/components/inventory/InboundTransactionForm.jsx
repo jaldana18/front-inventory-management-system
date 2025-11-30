@@ -1,25 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
-  FormHelperText,
-  CircularProgress,
-  Alert,
-  Box,
-  Typography,
-  Divider,
-  Grid,
-  InputAdornment,
-} from '@mui/material';
+  X,
+  Package,
+  DollarSign,
+  FileText,
+  Loader2,
+} from 'lucide-react';
 import { useAuth } from '../../context/useAuth';
 import { inventoryService } from '../../services/inventory.service';
 import { productService } from '../../services/product.service';
@@ -42,25 +29,30 @@ export default function InboundTransactionForm({ open, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
 
-  // Currency formatting functions - flexible for any currency
+  // Currency formatting functions
   const formatCurrency = (value) => {
     if (!value && value !== 0) return '';
+    const numericValue = typeof value === 'string' ? parseFloat(value.replace(/\./g, '').replace(',', '.')) : value;
+    if (isNaN(numericValue)) return '';
     return new Intl.NumberFormat('es-CO', {
+      style: 'decimal',
       minimumFractionDigits: 0,
       maximumFractionDigits: 2,
-    }).format(value);
+    }).format(numericValue);
   };
 
   const parseCurrency = (value) => {
     if (!value) return '';
-    return value.toString().replace(/[^0-9.]/g, '');
+    // Remove thousand separators (dots) and keep decimal separator (comma)
+    const cleaned = value.toString().replace(/\./g, '').replace(',', '.');
+    const parsed = cleaned.replace(/[^0-9.]/g, '');
+    return parsed;
   };
 
   const {
     control,
     handleSubmit,
     reset,
-    watch,
     setValue,
     formState: { errors },
   } = useForm({
@@ -91,14 +83,11 @@ export default function InboundTransactionForm({ open, onClose, onSuccess }) {
         warehouseService.getAll(),
       ]);
 
-      // Extract products from API response structure
       const productsData = productsRes?.data?.items || productsRes?.items || productsRes?.data || [];
       setProducts(Array.isArray(productsData) ? productsData : []);
 
-      // Extract warehouses from API response structure
       const warehousesData = warehousesRes?.data?.items || warehousesRes?.items || warehousesRes?.data || [];
 
-      // Filter warehouses based on user role
       const accessibleWarehouses = getAccessibleWarehouses(
         Array.isArray(warehousesData) ? warehousesData : [],
         userRole,
@@ -106,11 +95,9 @@ export default function InboundTransactionForm({ open, onClose, onSuccess }) {
       );
       setWarehouses(accessibleWarehouses);
 
-      // Auto-select warehouse for users
       if (userRole === ROLES.USER && userWarehouseId) {
         setValue('warehouseId', userWarehouseId);
       } else if (accessibleWarehouses.length === 1) {
-        // Auto-select if only one warehouse available
         setValue('warehouseId', accessibleWarehouses[0].id);
       }
     } catch (error) {
@@ -145,7 +132,6 @@ export default function InboundTransactionForm({ open, onClose, onSuccess }) {
     } catch (error) {
       console.error('Error creating inbound transaction:', error);
 
-      // Handle specific error codes
       if (error.response?.data?.error?.code === 'WAREHOUSE_ACCESS_DENIED') {
         toast.error('No tienes acceso a este almacén');
       } else {
@@ -165,293 +151,332 @@ export default function InboundTransactionForm({ open, onClose, onSuccess }) {
 
   const isUserRole = userRole === ROLES.USER;
 
+  if (!open) return null;
+
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-          Nueva Entrada de Inventario
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-          Registra la entrada de productos al almacén
-        </Typography>
-      </DialogTitle>
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/50 z-50 animate-in fade-in duration-200"
+        onClick={handleClose}
+      />
 
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <DialogContent>
-          {loadingData ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            <Box sx={{ pt: 1 }}>
-              {/* Información Básica */}
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ mb: 2 }}>
-                Información Básica
-              </Typography>
+      {/* Modal */}
+      <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-12 md:pt-20 pointer-events-none overflow-y-auto">
+        <div
+          className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[calc(100vh-6rem)] overflow-y-auto pointer-events-auto animate-in zoom-in-95 duration-200 my-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="border-b border-gray-200 pb-4 mb-2 px-6 pt-6 sticky top-0 bg-white z-10">
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-indigo-600 mb-1">
+                  Nueva Entrada de Inventario
+                </h2>
+                <p className="text-sm text-gray-500">
+                  Registra la entrada de productos al almacén
+                </p>
+              </div>
+              <button
+                onClick={handleClose}
+                disabled={loading}
+                className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100 disabled:opacity-50"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+          </div>
 
-              <Grid container spacing={2} sx={{ mb: 3 }}>
-                {/* Product Selection */}
-                <Grid item xs={12} md={6}>
-                  <Controller
-                    name="productId"
-                    control={control}
-                    rules={{ required: 'Producto es requerido' }}
-                    render={({ field }) => (
-                      <FormControl error={!!errors.productId} sx={{ width: '100%', minWidth: 300 }}>
-                        <InputLabel>Producto *</InputLabel>
-                        <Select
-                          {...field}
-                          label="Producto *"
-                          sx={{ minWidth: 300 }}
-                          MenuProps={{
-                            PaperProps: {
-                              style: {
-                                maxHeight: 300,
-                              },
-                            },
-                          }}
-                        >
-                          <MenuItem value="">
-                            <em>Seleccionar producto</em>
-                          </MenuItem>
-                          {products.map((product) => (
-                            <MenuItem key={product.id} value={product.id}>
-                              {product.name} ({product.sku})
-                            </MenuItem>
-                          ))}
-                        </Select>
-                        {errors.productId && (
-                          <FormHelperText>{errors.productId.message}</FormHelperText>
+          <form onSubmit={handleSubmit(onSubmit)} className="px-6 pb-6">
+            {loadingData ? (
+              <div className="flex justify-center items-center py-16">
+                <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+              </div>
+            ) : (
+              <>
+                {/* Información Básica */}
+                <div className="space-y-4 mb-6">
+                  <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <Package className="h-5 w-5 text-indigo-600" />
+                    Información Básica
+                  </h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Producto */}
+                    <div className="space-y-2">
+                      <label htmlFor="productId" className="block text-sm font-semibold text-gray-700">
+                        Producto <span className="text-red-500">*</span>
+                      </label>
+                      <Controller
+                        name="productId"
+                        control={control}
+                        rules={{ required: 'Producto es requerido' }}
+                        render={({ field }) => (
+                          <select
+                            {...field}
+                            id="productId"
+                            className="w-full h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors bg-white cursor-pointer"
+                          >
+                            <option value="">Seleccionar producto</option>
+                            {products.map((product) => (
+                              <option key={product.id} value={product.id}>
+                                {product.name} ({product.sku})
+                              </option>
+                            ))}
+                          </select>
                         )}
-                      </FormControl>
-                    )}
-                  />
-                </Grid>
-
-                {/* Warehouse Selection */}
-                <Grid item xs={12} md={6}>
-                  <Controller
-                    name="warehouseId"
-                    control={control}
-                    rules={{ required: 'Almacén es requerido' }}
-                    render={({ field }) => (
-                      <FormControl error={!!errors.warehouseId} sx={{ width: '100%', minWidth: 300 }}>
-                        <InputLabel>Almacén *</InputLabel>
-                        <Select
-                          {...field}
-                          label="Almacén *"
-                          disabled={isUserRole}
-                          sx={{ minWidth: 300 }}
-                          MenuProps={{
-                            PaperProps: {
-                              style: {
-                                maxHeight: 300,
-                              },
-                            },
-                          }}
-                        >
-                          <MenuItem value="">
-                            <em>Seleccionar almacén</em>
-                          </MenuItem>
-                          {warehouses.map((warehouse) => (
-                            <MenuItem key={warehouse.id} value={warehouse.id}>
-                              {warehouse.name} ({warehouse.code})
-                            </MenuItem>
-                          ))}
-                        </Select>
-                        {errors.warehouseId && (
-                          <FormHelperText>{errors.warehouseId.message}</FormHelperText>
-                        )}
-                        {isUserRole && (
-                          <FormHelperText>Asignado automáticamente a tu almacén</FormHelperText>
-                        )}
-                      </FormControl>
-                    )}
-                  />
-                </Grid>
-
-                {/* Reason */}
-                <Grid item xs={12} md={6}>
-                  <Controller
-                    name="reason"
-                    control={control}
-                    rules={{ required: 'Motivo es requerido' }}
-                    render={({ field }) => (
-                      <FormControl error={!!errors.reason} sx={{ width: '100%', minWidth: 250 }}>
-                        <InputLabel>Motivo *</InputLabel>
-                        <Select
-                          {...field}
-                          label="Motivo *"
-                          sx={{ minWidth: 250 }}
-                          MenuProps={{
-                            PaperProps: {
-                              style: {
-                                maxHeight: 300,
-                              },
-                            },
-                          }}
-                        >
-                          {INBOUND_REASONS.map((reason) => (
-                            <MenuItem key={reason.value} value={reason.value}>
-                              {reason.label}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                        {errors.reason && (
-                          <FormHelperText>{errors.reason.message}</FormHelperText>
-                        )}
-                      </FormControl>
-                    )}
-                  />
-                </Grid>
-
-                {/* Quantity */}
-                <Grid item xs={12} md={6}>
-                  <Controller
-                    name="quantity"
-                    control={control}
-                    rules={{
-                      required: 'Cantidad es requerida',
-                      min: { value: 1, message: 'Cantidad debe ser mayor a 0' },
-                    }}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        label="Cantidad *"
-                        type="number"
-                        fullWidth
-                        error={!!errors.quantity}
-                        helperText={errors.quantity?.message}
-                        InputProps={{ inputProps: { min: 1 } }}
                       />
-                    )}
-                  />
-                </Grid>
-              </Grid>
+                      {errors.productId && (
+                        <p className="text-sm text-red-500 flex items-center gap-1">
+                          ⚠️ {errors.productId.message}
+                        </p>
+                      )}
+                    </div>
 
-              <Divider sx={{ my: 2 }} />
+                    {/* Almacén */}
+                    <div className="space-y-2">
+                      <label htmlFor="warehouseId" className="block text-sm font-semibold text-gray-700">
+                        Almacén <span className="text-red-500">*</span>
+                      </label>
+                      <Controller
+                        name="warehouseId"
+                        control={control}
+                        rules={{ required: 'Almacén es requerido' }}
+                        render={({ field }) => (
+                          <select
+                            {...field}
+                            id="warehouseId"
+                            disabled={isUserRole}
+                            className="w-full h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors bg-white cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          >
+                            <option value="">Seleccionar almacén</option>
+                            {warehouses.map((warehouse) => (
+                              <option key={warehouse.id} value={warehouse.id}>
+                                {warehouse.name} ({warehouse.code})
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      />
+                      {errors.warehouseId && (
+                        <p className="text-sm text-red-500 flex items-center gap-1">
+                          ⚠️ {errors.warehouseId.message}
+                        </p>
+                      )}
+                      {isUserRole && (
+                        <p className="text-xs text-gray-500">
+                          Asignado automáticamente a tu almacén
+                        </p>
+                      )}
+                    </div>
 
-              {/* Información Financiera */}
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ mb: 2 }}>
-                Información Financiera
-              </Typography>
+                    {/* Motivo */}
+                    <div className="space-y-2">
+                      <label htmlFor="reason" className="block text-sm font-semibold text-gray-700">
+                        Motivo <span className="text-red-500">*</span>
+                      </label>
+                      <Controller
+                        name="reason"
+                        control={control}
+                        rules={{ required: 'Motivo es requerido' }}
+                        render={({ field }) => (
+                          <select
+                            {...field}
+                            id="reason"
+                            className="w-full h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors bg-white cursor-pointer"
+                          >
+                            {INBOUND_REASONS.map((reason) => (
+                              <option key={reason.value} value={reason.value}>
+                                {reason.label}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      />
+                      {errors.reason && (
+                        <p className="text-sm text-red-500 flex items-center gap-1">
+                          ⚠️ {errors.reason.message}
+                        </p>
+                      )}
+                    </div>
 
-              <Grid container spacing={2} sx={{ mb: 3 }}>
-                {/* Unit Cost */}
-                <Grid item xs={12} md={6}>
-                  <Controller
-                    name="unitCost"
-                    control={control}
-                    render={({ field: { onChange, value, ...field } }) => (
-                      <TextField
-                        {...field}
-                        value={value ? formatCurrency(value) : ''}
-                        onChange={(e) => {
-                          const numericValue = parseCurrency(e.target.value);
-                          onChange(numericValue);
+                    {/* Cantidad */}
+                    <div className="space-y-2">
+                      <label htmlFor="quantity" className="block text-sm font-semibold text-gray-700">
+                        Cantidad <span className="text-red-500">*</span>
+                      </label>
+                      <Controller
+                        name="quantity"
+                        control={control}
+                        rules={{
+                          required: 'Cantidad es requerida',
+                          min: { value: 1, message: 'Cantidad debe ser mayor a 0' },
                         }}
-                        label="Costo Unitario"
-                        fullWidth
-                        InputProps={{
-                          startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                        }}
-                        helperText="Opcional - Costo por unidad (acepta decimales)"
-                        placeholder="0"
+                        render={({ field }) => (
+                          <input
+                            {...field}
+                            id="quantity"
+                            type="number"
+                            min="1"
+                            className="w-full h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors"
+                            placeholder="0"
+                          />
+                        )}
                       />
-                    )}
-                  />
-                </Grid>
+                      {errors.quantity && (
+                        <p className="text-sm text-red-500 flex items-center gap-1">
+                          ⚠️ {errors.quantity.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
 
-                {/* Reference */}
-                <Grid item xs={12} md={6}>
-                  <Controller
-                    name="reference"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        label="Referencia/Factura"
-                        fullWidth
-                        placeholder="FAC-12345"
-                        helperText="Opcional - Número de factura o referencia"
+                {/* Información Financiera */}
+                <div className="space-y-4 mb-6">
+                  <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-green-600" />
+                    Información Financiera
+                  </h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Costo Unitario */}
+                    <div className="space-y-2">
+                      <label htmlFor="unitCost" className="block text-sm font-semibold text-gray-700">
+                        Costo Unitario
+                      </label>
+                      <Controller
+                        name="unitCost"
+                        control={control}
+                        render={({ field: { onChange, value, ...field } }) => (
+                          <div className="relative">
+                            <span className="absolute left-3 top-3.5 text-gray-500 font-medium text-sm pointer-events-none">COP $</span>
+                            <input
+                              {...field}
+                              value={value ? formatCurrency(value) : ''}
+                              onChange={(e) => {
+                                const numericValue = parseCurrency(e.target.value);
+                                onChange(numericValue);
+                              }}
+                              id="unitCost"
+                              type="text"
+                              className="w-full pl-20 h-12 border border-gray-200 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-200 focus:outline-none transition-colors"
+                              placeholder="0"
+                            />
+                          </div>
+                        )}
                       />
-                    )}
-                  />
-                </Grid>
-              </Grid>
+                      <p className="text-xs text-gray-400">
+                        Opcional - Costo por unidad (acepta decimales)
+                      </p>
+                    </div>
 
-              <Divider sx={{ my: 2 }} />
-
-              {/* Información de Ubicación */}
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ mb: 2 }}>
-                Información Adicional
-              </Typography>
-
-              <Grid container spacing={2}>
-                {/* Location */}
-                <Grid item xs={12}>
-                  <Controller
-                    name="location"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        label="Ubicación en Almacén"
-                        fullWidth
-                        placeholder="Estante A-12, Pasillo 3"
-                        helperText="Opcional - Ubicación física del producto"
+                    {/* Referencia */}
+                    <div className="space-y-2">
+                      <label htmlFor="reference" className="block text-sm font-semibold text-gray-700">
+                        Referencia/Factura
+                      </label>
+                      <Controller
+                        name="reference"
+                        control={control}
+                        render={({ field }) => (
+                          <input
+                            {...field}
+                            id="reference"
+                            type="text"
+                            className="w-full h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors"
+                            placeholder="FAC-12345"
+                          />
+                        )}
                       />
-                    )}
-                  />
-                </Grid>
+                      <p className="text-xs text-gray-400">
+                        Opcional - Número de factura o referencia
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
-                {/* Notes */}
-                <Grid item xs={12}>
-                  <Controller
-                    name="notes"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        label="Notas"
-                        fullWidth
-                        multiline
-                        rows={3}
-                        placeholder="Detalles adicionales sobre esta entrada..."
-                        helperText="Opcional - Información adicional relevante"
+                {/* Información Adicional */}
+                <div className="space-y-4 mb-6">
+                  <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-blue-600" />
+                    Información Adicional
+                  </h3>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    {/* Ubicación */}
+                    <div className="space-y-2">
+                      <label htmlFor="location" className="block text-sm font-semibold text-gray-700">
+                        Ubicación en Almacén
+                      </label>
+                      <Controller
+                        name="location"
+                        control={control}
+                        render={({ field }) => (
+                          <input
+                            {...field}
+                            id="location"
+                            type="text"
+                            className="w-full h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors"
+                            placeholder="Estante A-12, Pasillo 3"
+                          />
+                        )}
                       />
-                    )}
-                  />
-                </Grid>
-              </Grid>
-            </Box>
-          )}
-        </DialogContent>
+                      <p className="text-xs text-gray-400">
+                        Opcional - Ubicación física del producto
+                      </p>
+                    </div>
 
-        <DialogActions sx={{ px: 3, pb: 3, pt: 2 }}>
-          <Button onClick={handleClose} disabled={loading} sx={{ mr: 1 }}>
-            Cancelar
-          </Button>
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={loading || loadingData}
-            startIcon={loading && <CircularProgress size={20} color="inherit" />}
-            sx={{
-              px: 3,
-              background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-              '&:hover': {
-                background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-              },
-              '&:disabled': {
-                background: 'rgba(16, 185, 129, 0.5)',
-              },
-            }}
-          >
-            {loading ? 'Registrando...' : 'Registrar Entrada'}
-          </Button>
-        </DialogActions>
-      </form>
-    </Dialog>
+                    {/* Notas */}
+                    <div className="space-y-2">
+                      <label htmlFor="notes" className="block text-sm font-semibold text-gray-700">
+                        Notas
+                      </label>
+                      <Controller
+                        name="notes"
+                        control={control}
+                        render={({ field }) => (
+                          <textarea
+                            {...field}
+                            id="notes"
+                            rows={3}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors resize-none"
+                            placeholder="Detalles adicionales sobre esta entrada..."
+                          />
+                        )}
+                      />
+                      <p className="text-xs text-gray-400">
+                        Opcional - Información adicional relevante
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Footer */}
+            <div className="border-t border-gray-200 pt-6 flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={handleClose}
+                disabled={loading}
+                className="px-6 h-11 border-2 border-gray-300 hover:bg-gray-50 font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={loading || loadingData}
+                className="px-8 h-11 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {loading && <Loader2 className="h-5 w-5 animate-spin" />}
+                {loading ? 'Registrando...' : 'Registrar Entrada'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </>
   );
 }

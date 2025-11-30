@@ -23,6 +23,8 @@ export const useAuditLogs = (filters = {}) => {
       setLoading(true);
       setError(null);
       const response = await auditLogService.getLogs(filters);
+      console.log('🔍 Audit Logs Response:', response);
+      console.log('📊 Logs data:', response.data?.logs);
       setLogs(response.data?.logs || []);
       setPagination(response.data?.pagination || {
         page: 1,
@@ -42,7 +44,7 @@ export const useAuditLogs = (filters = {}) => {
   useEffect(() => {
     fetchLogs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.page, filters.limit, filters.startDate, filters.endDate, filters.userId, filters.search]);
+  }, [filters.page, filters.limit, filters.startDate, filters.endDate, filters.userId, filters.search, filters.operation, filters.type, filters.level, filters.sortOrder]);
 
   const exportLogs = async (exportFilters) => {
     try {

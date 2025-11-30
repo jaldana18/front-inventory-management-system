@@ -1,39 +1,15 @@
 import { useState, useRef } from 'react';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Box,
-  Typography,
-  Alert,
-  LinearProgress,
-  Stepper,
-  Step,
-  StepLabel,
-  Paper,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Divider,
-  Chip,
-  Stack,
-  IconButton,
-  Collapse,
-} from '@mui/material';
-import {
-  CloudUpload as UploadIcon,
-  CheckCircle as CheckIcon,
-  Error as ErrorIcon,
-  Warning as WarningIcon,
-  Download as DownloadIcon,
-  Close as CloseIcon,
-  Visibility as PreviewIcon,
-  ExpandMore as ExpandMoreIcon,
-  Inventory as InventoryIcon,
-} from '@mui/icons-material';
+  Upload,
+  CheckCircle,
+  AlertCircle,
+  AlertTriangle,
+  Download,
+  X,
+  Eye,
+  ChevronDown,
+  Package,
+} from 'lucide-react';
 import { inventoryService } from '../../services/inventory.service';
 import toast from 'react-hot-toast';
 
@@ -79,7 +55,6 @@ const BulkInventoryUploadDialog = ({ open, onClose, onSuccess }) => {
   const handleFileSelect = (event) => {
     const selectedFile = event.target.files[0];
     if (selectedFile) {
-      // Validate file type
       const validTypes = [
         'application/vnd.ms-excel',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -102,7 +77,9 @@ const BulkInventoryUploadDialog = ({ open, onClose, onSuccess }) => {
     setLoading(true);
     try {
       const response = await inventoryService.bulkPreview(file, updateExisting);
-      setPreview(response.data.data);
+      const previewData = response.data.data || response.data;
+
+      setPreview(previewData);
       setActiveStep(1);
       toast.success('Vista previa generada correctamente');
     } catch (error) {
@@ -149,262 +126,243 @@ const BulkInventoryUploadDialog = ({ open, onClose, onSuccess }) => {
     switch (activeStep) {
       case 0:
         return (
-          <Box>
-            <Alert severity="info" sx={{ mb: 3 }}>
-              <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-                Instrucciones:
-              </Typography>
-              <Typography variant="caption" component="div">
-                1. Descargue la plantilla de Excel
-                <br />
-                2. Complete los datos de las transacciones de inventario
-                <br />
-                3. Suba el archivo completado
-                <br />
-                4. Revise la vista previa antes de confirmar
-              </Typography>
-            </Alert>
+          <div className="space-y-4">
+            {/* Instrucciones */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm font-semibold text-blue-900 mb-2">Instrucciones:</p>
+              <div className="text-sm text-blue-800 space-y-1">
+                <p>1. Descargue la plantilla de Excel</p>
+                <p>2. Complete los datos de las transacciones de inventario</p>
+                <p>3. Suba el archivo completado</p>
+                <p>4. Revise la vista previa antes de confirmar</p>
+              </div>
+            </div>
 
-            <Button
-              variant="outlined"
-              startIcon={<DownloadIcon />}
+            {/* Botón descargar plantilla */}
+            <button
               onClick={handleDownloadTemplate}
-              fullWidth
-              sx={{ mb: 3 }}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-indigo-200 text-indigo-600 hover:bg-indigo-50 font-semibold rounded-lg transition-colors"
             >
+              <Download className="h-5 w-5" />
               Descargar plantilla de Excel
-            </Button>
+            </button>
 
-            <Paper
-              sx={{
-                p: 4,
-                textAlign: 'center',
-                border: '2px dashed',
-                borderColor: file ? 'success.main' : 'divider',
-                backgroundColor: file ? 'success.50' : 'background.paper',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  borderColor: 'primary.main',
-                  backgroundColor: 'action.hover',
-                },
-              }}
+            {/* Zona de carga */}
+            <div
               onClick={() => fileInputRef.current?.click()}
+              className={`p-8 text-center border-2 border-dashed rounded-lg cursor-pointer transition-all ${
+                file
+                  ? 'border-green-500 bg-green-50'
+                  : 'border-gray-300 bg-white hover:border-indigo-500 hover:bg-indigo-50'
+              }`}
             >
               <input
                 ref={fileInputRef}
                 type="file"
                 accept=".xls,.xlsx"
                 onChange={handleFileSelect}
-                style={{ display: 'none' }}
+                className="hidden"
               />
-              <UploadIcon sx={{ fontSize: 64, color: file ? 'success.main' : 'action.disabled', mb: 2 }} />
-              <Typography variant="h6" gutterBottom>
+              <Upload
+                className={`mx-auto mb-3 ${file ? 'text-green-500' : 'text-gray-400'}`}
+                size={64}
+              />
+              <p className="text-lg font-semibold text-gray-900 mb-1">
                 {file ? file.name : 'Haga clic o arrastre el archivo aquí'}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Archivos permitidos: .xls, .xlsx
-              </Typography>
+              </p>
+              <p className="text-sm text-gray-500">Archivos permitidos: .xls, .xlsx</p>
               {file && (
-                <Chip
-                  label={`${(file.size / 1024).toFixed(2)} KB`}
-                  color="success"
-                  size="small"
-                  sx={{ mt: 2 }}
-                />
+                <span className="inline-block mt-3 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                  {(file.size / 1024).toFixed(2)} KB
+                </span>
               )}
-            </Paper>
+            </div>
 
-            <Box sx={{ mt: 3 }}>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={updateExisting}
-                  onChange={(e) => setUpdateExisting(e.target.checked)}
-                  style={{ marginRight: 8 }}
-                />
-                <Typography variant="body2" component="span">
-                  Actualizar inventario existente (basado en Código y Almacén)
-                </Typography>
-              </label>
-            </Box>
-          </Box>
+            {/* Checkbox actualizar existente */}
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={updateExisting}
+                onChange={(e) => setUpdateExisting(e.target.checked)}
+                className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+              />
+              <span className="text-sm text-gray-700">
+                Actualizar inventario existente (basado en Código y Almacén)
+              </span>
+            </label>
+          </div>
         );
 
       case 1:
         return (
-          <Box>
+          <div className="space-y-4">
             {preview && (
               <>
-                <Alert severity={preview.summary.invalidRows > 0 ? 'warning' : 'success'} sx={{ mb: 3 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Resumen de la carga:
-                  </Typography>
-                  <Box sx={{ mt: 1 }}>
-                    <Chip label={`${preview.summary.totalRows} filas totales`} size="small" sx={{ mr: 1, mb: 1 }} />
-                    <Chip
-                      label={`${preview.summary.validRows} válidas`}
-                      color="success"
-                      size="small"
-                      sx={{ mr: 1, mb: 1 }}
-                    />
-                    {preview.summary.invalidRows > 0 && (
-                      <Chip
-                        label={`${preview.summary.invalidRows} con errores`}
-                        color="error"
-                        size="small"
-                        sx={{ mr: 1, mb: 1 }}
-                      />
+                {/* Resumen */}
+                <div
+                  className={`border rounded-lg p-4 ${
+                    preview.summary?.invalidRows > 0
+                      ? 'bg-yellow-50 border-yellow-200'
+                      : 'bg-green-50 border-green-200'
+                  }`}
+                >
+                  <p className="text-sm font-semibold text-gray-900 mb-3">Resumen de la carga:</p>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="inline-block px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+                      {preview.summary?.totalRows || 0} filas totales
+                    </span>
+                    <span className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                      {preview.summary?.validRows || 0} válidas
+                    </span>
+                    {(preview.summary?.invalidRows || 0) > 0 && (
+                      <span className="inline-block px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
+                        {preview.summary.invalidRows} con errores
+                      </span>
                     )}
-                    {preview.summary.productsToCreate > 0 && (
-                      <Chip
-                        label={`${preview.summary.productsToCreate} productos a crear`}
-                        color="primary"
-                        size="small"
-                        sx={{ mr: 1, mb: 1 }}
-                      />
+                    {(preview.summary?.productsToCreate || 0) > 0 && (
+                      <span className="inline-block px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">
+                        {preview.summary.productsToCreate} productos a crear
+                      </span>
                     )}
-                    <Chip
-                      label={`Cantidad total: ${preview.summary.totalQuantity}`}
-                      color="info"
-                      size="small"
-                      sx={{ mr: 1, mb: 1 }}
-                    />
-                    <Chip
-                      label={`Costo total: $${preview.summary.totalCost?.toLocaleString('es-CO')}`}
-                      color="secondary"
-                      size="small"
-                      sx={{ mb: 1 }}
-                    />
-                  </Box>
-                </Alert>
+                    <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
+                      Cantidad total: {preview.summary?.totalQuantity || 0}
+                    </span>
+                    <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm">
+                      Costo total: ${preview.summary?.totalCost?.toLocaleString('es-CO') || 0}
+                    </span>
+                  </div>
+                </div>
 
+                {/* Errores */}
                 {preview.errors && preview.errors.length > 0 && (
-                  <Box sx={{ mb: 3 }}>
-                    <Button
+                  <div>
+                    <button
                       onClick={() => setShowErrors(!showErrors)}
-                      endIcon={
-                        <ExpandMoreIcon
-                          sx={{
-                            transform: showErrors ? 'rotate(180deg)' : 'rotate(0deg)',
-                            transition: '0.3s',
-                          }}
-                        />
-                      }
-                      color="error"
-                      size="small"
+                      className="flex items-center gap-2 text-red-600 hover:text-red-700 text-sm font-medium"
                     >
                       Ver errores ({preview.errors.length})
-                    </Button>
-                    <Collapse in={showErrors}>
-                      <Paper sx={{ mt: 1, p: 2, maxHeight: 200, overflow: 'auto' }}>
-                        <List dense>
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform ${
+                          showErrors ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </button>
+                    {showErrors && (
+                      <div className="mt-2 border border-gray-200 rounded-lg p-3 max-h-48 overflow-y-auto bg-white">
+                        <ul className="space-y-2">
                           {preview.errors.map((error, idx) => (
-                            <ListItem key={idx}>
-                              <ListItemIcon>
-                                <ErrorIcon color="error" fontSize="small" />
-                              </ListItemIcon>
-                              <ListItemText
-                                primary={`Fila ${error.row}${error.sku ? `: SKU ${error.sku}` : ''}`}
-                                secondary={error.message}
-                              />
-                            </ListItem>
+                            <li key={idx} className="flex items-start gap-2 text-sm">
+                              <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <p className="font-medium text-gray-900">
+                                  Fila {error.row}
+                                  {error.sku ? `: SKU ${error.sku}` : ''}
+                                </p>
+                                <p className="text-gray-600">{error.message}</p>
+                              </div>
+                            </li>
                           ))}
-                        </List>
-                      </Paper>
-                    </Collapse>
-                  </Box>
-                )}
-
-                <Divider sx={{ my: 2 }} />
-
-                {preview.createdProducts && preview.createdProducts.length > 0 && (
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                      Productos que se crearán:
-                    </Typography>
-                    <Paper sx={{ mt: 1, maxHeight: 200, overflow: 'auto', bgcolor: 'primary.50' }}>
-                      <List dense>
-                        {preview.createdProducts.map((product, idx) => (
-                          <ListItem key={idx}>
-                            <ListItemIcon>
-                              <CheckIcon color="primary" fontSize="small" />
-                            </ListItemIcon>
-                            <ListItemText
-                              primary={product.name}
-                              secondary={`SKU: ${product.sku}`}
-                            />
-                          </ListItem>
-                        ))}
-                      </List>
-                    </Paper>
-                  </Box>
-                )}
-
-                {preview.summary.validRows > 0 && (
-                  <Alert severity="info" sx={{ mt: 2 }}>
-                    <Typography variant="body2">
-                      Se procesarán {preview.summary.validRows} filas válidas con un total de{' '}
-                      {preview.summary.totalQuantity} unidades por un costo de{' '}
-                      ${preview.summary.totalCost?.toLocaleString('es-CO')}.
-                    </Typography>
-                    {preview.summary.productsAffected > 0 && (
-                      <Typography variant="body2" sx={{ mt: 1 }}>
-                        Se afectarán {preview.summary.productsAffected} producto(s) existente(s).
-                      </Typography>
+                        </ul>
+                      </div>
                     )}
-                  </Alert>
+                  </div>
+                )}
+
+                <div className="border-t border-gray-200 my-4" />
+
+                {/* Productos a crear */}
+                {preview.createdProducts && preview.createdProducts.length > 0 && (
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900 mb-2">
+                      Productos que se crearán:
+                    </p>
+                    <div className="border border-indigo-200 rounded-lg p-3 max-h-48 overflow-y-auto bg-indigo-50">
+                      <ul className="space-y-2">
+                        {preview.createdProducts.map((product, idx) => (
+                          <li key={idx} className="flex items-start gap-2 text-sm">
+                            <CheckCircle className="h-4 w-4 text-indigo-600 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="font-medium text-gray-900">{product.name}</p>
+                              <p className="text-gray-600">SKU: {product.sku}</p>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+
+                {/* Info adicional */}
+                {(preview.summary?.validRows || 0) > 0 && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-sm text-blue-900">
+                      Se procesarán {preview.summary.validRows} filas válidas con un total de{' '}
+                      {preview.summary.totalQuantity} unidades por un costo de $
+                      {preview.summary.totalCost?.toLocaleString('es-CO')}.
+                    </p>
+                    {(preview.summary.productsAffected || 0) > 0 && (
+                      <p className="text-sm text-blue-900 mt-2">
+                        Se afectarán {preview.summary.productsAffected} producto(s) existente(s).
+                      </p>
+                    )}
+                  </div>
                 )}
               </>
             )}
-          </Box>
+          </div>
         );
 
       case 2:
         return (
-          <Box>
+          <div className="space-y-4">
             {uploadResult && (
               <>
-                <Alert severity={uploadResult.errorCount === 0 ? 'success' : 'warning'} sx={{ mb: 3 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Carga completada
-                  </Typography>
-                  <Box sx={{ mt: 1 }}>
-                    <Chip
-                      label={`${uploadResult.successCount} procesados`}
-                      color="success"
-                      size="small"
-                      sx={{ mr: 1 }}
-                    />
+                {/* Resultado */}
+                <div
+                  className={`border rounded-lg p-4 ${
+                    uploadResult.errorCount === 0
+                      ? 'bg-green-50 border-green-200'
+                      : 'bg-yellow-50 border-yellow-200'
+                  }`}
+                >
+                  <p className="text-sm font-semibold text-gray-900 mb-3">Carga completada</p>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                      {uploadResult.successCount} procesados
+                    </span>
                     {uploadResult.errorCount > 0 && (
-                      <Chip label={`${uploadResult.errorCount} errores`} color="error" size="small" />
+                      <span className="inline-block px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
+                        {uploadResult.errorCount} errores
+                      </span>
                     )}
-                  </Box>
-                </Alert>
+                  </div>
+                </div>
 
+                {/* Errores */}
                 {uploadResult.errors && uploadResult.errors.length > 0 && (
-                  <Paper sx={{ p: 2, maxHeight: 300, overflow: 'auto' }}>
-                    <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
+                  <div className="border border-gray-200 rounded-lg p-4 max-h-72 overflow-y-auto bg-white">
+                    <p className="text-sm font-semibold text-gray-900 mb-3">
                       Errores encontrados:
-                    </Typography>
-                    <List dense>
+                    </p>
+                    <ul className="space-y-2">
                       {uploadResult.errors.map((error, idx) => (
-                        <ListItem key={idx}>
-                          <ListItemIcon>
-                            <ErrorIcon color="error" fontSize="small" />
-                          </ListItemIcon>
-                          <ListItemText
-                            primary={`Fila ${error.row}${error.sku ? `: SKU ${error.sku}` : ''}`}
-                            secondary={error.message}
-                          />
-                        </ListItem>
+                        <li key={idx} className="flex items-start gap-2 text-sm">
+                          <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              Fila {error.row}
+                              {error.sku ? `: SKU ${error.sku}` : ''}
+                            </p>
+                            <p className="text-gray-600">{error.message}</p>
+                          </div>
+                        </li>
                       ))}
-                    </List>
-                  </Paper>
+                    </ul>
+                  </div>
                 )}
               </>
             )}
-          </Box>
+          </div>
         );
 
       default:
@@ -412,75 +370,149 @@ const BulkInventoryUploadDialog = ({ open, onClose, onSuccess }) => {
     }
   };
 
+  if (!open) return null;
+
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <InventoryIcon color="primary" />
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              Carga masiva de inventario
-            </Typography>
-          </Box>
-          <IconButton onClick={handleClose} size="small">
-            <CloseIcon />
-          </IconButton>
-        </Stack>
-      </DialogTitle>
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/50 z-50 animate-in fade-in duration-200"
+        onClick={handleClose}
+      />
 
-      <DialogContent>
-        <Stepper activeStep={activeStep} sx={{ mb: 4, mt: 2 }}>
-          {STEPS.map((label) => (
-            <Step key={label}>
-              <StepLabel>{label}</StepLabel>
-            </Step>
-          ))}
-        </Stepper>
+      {/* Modal */}
+      <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-12 md:pt-20 pointer-events-none overflow-y-auto">
+        <div
+          className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[calc(100vh-6rem)] overflow-y-auto pointer-events-auto animate-in zoom-in-95 duration-200 my-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="border-b border-gray-200 pb-4 mb-2 px-6 pt-6 sticky top-0 bg-white z-10">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2">
+                <Package className="h-6 w-6 text-indigo-600" />
+                <h2 className="text-2xl font-bold text-indigo-600">
+                  Carga masiva de inventario
+                </h2>
+              </div>
+              <button
+                onClick={handleClose}
+                className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+          </div>
 
-        {loading && <LinearProgress sx={{ mb: 2 }} />}
+          {/* Content */}
+          <div className="px-6 pb-6">
+            {/* Stepper */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between">
+                {STEPS.map((label, index) => (
+                  <div key={label} className="flex-1 flex items-center">
+                    <div className="flex flex-col items-center flex-1">
+                      <div
+                        className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors ${
+                          index <= activeStep
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-gray-200 text-gray-500'
+                        }`}
+                      >
+                        {index + 1}
+                      </div>
+                      <p
+                        className={`text-xs mt-2 text-center font-medium ${
+                          index <= activeStep ? 'text-indigo-600' : 'text-gray-500'
+                        }`}
+                      >
+                        {label}
+                      </p>
+                    </div>
+                    {index < STEPS.length - 1 && (
+                      <div
+                        className={`h-1 flex-1 mx-2 rounded transition-colors ${
+                          index < activeStep ? 'bg-indigo-600' : 'bg-gray-200'
+                        }`}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
 
-        {renderStepContent()}
-      </DialogContent>
+            {/* Progress bar */}
+            {loading && (
+              <div className="mb-4">
+                <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                  <div className="bg-indigo-600 h-2 rounded-full animate-pulse" style={{ width: '100%' }} />
+                </div>
+              </div>
+            )}
 
-      <DialogActions sx={{ px: 3, pb: 3 }}>
-        <Button onClick={handleClose} disabled={loading}>
-          {activeStep === 2 ? 'Cerrar' : 'Cancelar'}
-        </Button>
+            {/* Step content */}
+            <div className="min-h-[300px]">{renderStepContent()}</div>
 
-        {activeStep === 0 && (
-          <Button
-            variant="contained"
-            onClick={handlePreview}
-            disabled={!file || loading}
-            startIcon={<PreviewIcon />}
-          >
-            Vista previa
-          </Button>
-        )}
+            {/* Footer */}
+            <div className="border-t border-gray-200 pt-6 mt-6 flex gap-3 justify-end">
+              <button
+                onClick={handleClose}
+                disabled={loading}
+                className="px-6 h-11 border-2 border-gray-300 hover:bg-gray-50 font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {activeStep === 2 ? 'Cerrar' : 'Cancelar'}
+              </button>
 
-        {activeStep === 1 && (
-          <>
-            <Button onClick={() => setActiveStep(0)} disabled={loading}>
-              Atrás
-            </Button>
-            <Button
-              variant="contained"
-              onClick={handleUpload}
-              disabled={!preview || loading || preview.summary.validRows === 0}
-              startIcon={<UploadIcon />}
-            >
-              Confirmar carga
-            </Button>
-          </>
-        )}
+              {activeStep === 0 && (
+                <button
+                  onClick={handlePreview}
+                  disabled={!file || loading}
+                  className="px-6 h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  <Eye className="h-5 w-5" />
+                  Vista previa
+                </button>
+              )}
 
-        {activeStep === 2 && uploadResult?.errorCount === 0 && (
-          <Button variant="contained" onClick={handleClose}>
-            Finalizar
-          </Button>
-        )}
-      </DialogActions>
-    </Dialog>
+              {activeStep === 1 && (
+                <>
+                  <button
+                    onClick={() => setActiveStep(0)}
+                    disabled={loading}
+                    className="px-6 h-11 border-2 border-gray-300 hover:bg-gray-50 font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Atrás
+                  </button>
+                  <button
+                    onClick={handleUpload}
+                    disabled={
+                      !preview ||
+                      loading ||
+                      (preview.summary &&
+                        preview.summary.validRows !== undefined &&
+                        preview.summary.validRows === 0)
+                    }
+                    className="px-6 h-11 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    <Upload className="h-5 w-5" />
+                    Confirmar carga
+                  </button>
+                </>
+              )}
+
+              {activeStep === 2 && uploadResult?.errorCount === 0 && (
+                <button
+                  onClick={handleClose}
+                  className="px-6 h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors"
+                >
+                  Finalizar
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
   );
 };
 

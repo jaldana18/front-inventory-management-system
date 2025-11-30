@@ -27,9 +27,10 @@ import {
  * Render details preview based on operation type
  */
 const renderDetailsPreview = (log) => {
-  const details = log.details || {};
+  // Validar que details sea un objeto
+  const details = typeof log.details === 'object' && log.details !== null ? log.details : {};
 
-  switch (log.operation) {
+  switch (log.operation || log.event) {
     case 'sale_created':
     case 'sale_confirmed':
       return (
@@ -94,7 +95,7 @@ const renderDetailsPreview = (log) => {
     default:
       return (
         <Typography variant="body2" color="text.secondary">
-          {log.message}
+          {typeof log.message === 'string' ? log.message : 'Sin detalles'}
         </Typography>
       );
   }
@@ -155,11 +156,19 @@ export const AuditLogTable = ({
                 </TableCell>
               </TableRow>
             ) : (
-              logs.map((log) => {
+              logs.map((log, index) => {
                 const levelColors = getLogLevelBadgeColor(log.level);
+                // Extraer datos del log de forma segura
+                const logId = log.id || log._id || `log-${index}`;
+                const timestamp = log.timestamp || log.createdAt || new Date().toISOString();
+                const operation = log.operation || log.event || 'unknown';
+                const userEmail = typeof log.details === 'object' ? log.details?.email : log.email;
+                const userId = log.userId;
+                const level = log.level || 'info';
+                
                 return (
                   <TableRow
-                    key={log.id}
+                    key={logId}
                     hover
                     sx={{
                       cursor: 'pointer',
@@ -169,18 +178,17 @@ export const AuditLogTable = ({
                   >
                     <TableCell>
                       <Typography variant="body2">
-                        {formatAuditDate(log.timestamp)}
+                        {formatAuditDate(timestamp)}
                       </Typography>
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
-                        {log.details?.email ||
-                          (log.userId ? `Usuario #${log.userId}` : '-')}
+                        {userEmail || (userId ? `Usuario #${userId}` : '-')}
                       </Typography>
                     </TableCell>
                     <TableCell>
                       <Chip
-                        label={log.level?.toUpperCase() || 'INFO'}
+                        label={String(level).toUpperCase()}
                         size="small"
                         sx={{
                           backgroundColor: levelColors.bg,
@@ -193,10 +201,10 @@ export const AuditLogTable = ({
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <span style={{ fontSize: '1.25rem' }}>
-                          {getOperationIcon(log.operation)}
+                          {getOperationIcon(operation)}
                         </span>
                         <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          {getOperationLabel(log.operation)}
+                          {getOperationLabel(operation)}
                         </Typography>
                       </Box>
                     </TableCell>
