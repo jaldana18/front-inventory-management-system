@@ -1,47 +1,71 @@
-import { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  Grid,
-  FormControlLabel,
-  Checkbox,
-  Box,
-  Typography,
-  Divider,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
-} from '@mui/material';
+import { useState, useEffect, useCallback } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { 
+  Warehouse, 
+  MapPin, 
+  Phone, 
+  Mail, 
+  User, 
+  Globe,
+  Building2,
+  X,
+  Sparkles
+} from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { countries, colombiaDepartments, colombiaCities } from '../../data/colombiaData';
 
+// Esquema de validación
+const warehouseSchema = z.object({
+  code: z.string().min(1, 'El código es requerido'),
+  name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
+  description: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  zip: z.string().optional(),
+  country: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().email('Email inválido').optional().or(z.literal('')),
+  managerName: z.string().optional(),
+  isMain: z.boolean().optional(),
+});
+
 export default function WarehouseFormDialog({ open, warehouse, onClose, onSubmit, isLoading }) {
   const { t } = useLanguage();
-  const [formData, setFormData] = useState({
-    code: '',
-    name: '',
-    description: '',
-    address: '',
-    city: '',
-    state: '',
-    zip: '',
-    country: '',
-    phone: '',
-    email: '',
-    managerName: '',
-    isMain: false,
+  
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+    reset,
+    setValue,
+    watch,
+  } = useForm({
+    resolver: zodResolver(warehouseSchema),
+    defaultValues: {
+      code: '',
+      name: '',
+      description: '',
+      address: '',
+      city: '',
+      state: '',
+      zip: '',
+      country: '',
+      phone: '',
+      email: '',
+      managerName: '',
+      isMain: false,
+    },
   });
 
-  const [errors, setErrors] = useState({});
+  const selectedCountry = watch('country');
+  const selectedState = watch('state');
 
   useEffect(() => {
     if (warehouse) {
-      setFormData({
+      reset({
         code: warehouse.code || '',
         name: warehouse.name || '',
         description: warehouse.description || '',
@@ -56,7 +80,7 @@ export default function WarehouseFormDialog({ open, warehouse, onClose, onSubmit
         isMain: warehouse.isMain || false,
       });
     } else {
-      setFormData({
+      reset({
         code: '',
         name: '',
         description: '',
@@ -71,359 +95,487 @@ export default function WarehouseFormDialog({ open, warehouse, onClose, onSubmit
         isMain: false,
       });
     }
-    setErrors({});
-  }, [warehouse, open]);
+  }, [warehouse, open, reset]);
 
+  // Reset state and city when country changes
+  useEffect(() => {
+    if (selectedCountry !== 'CO') {
+      setValue('state', '');
+      setValue('city', '');
+    }
+  }, [selectedCountry, setValue]);
+
+  // Reset city when state changes
+  useEffect(() => {
+    if (selectedCountry === 'CO' && selectedState) {
+      setValue('city', '');
+    }
+  }, [selectedState, selectedCountry, setValue]);
   const formatPhoneNumber = (value) => {
-    // Remover todo excepto números
     const numbers = value.replace(/\D/g, '');
-
-    // Formato para Colombia: +57 (XXX) XXX-XXXX
     if (numbers.length <= 2) return numbers;
     if (numbers.length <= 5) return `+57 (${numbers.slice(2)})`;
     if (numbers.length <= 8) return `+57 (${numbers.slice(2, 5)}) ${numbers.slice(5)}`;
     return `+57 (${numbers.slice(2, 5)}) ${numbers.slice(5, 8)}-${numbers.slice(8, 12)}`;
   };
 
-  const handleChange = (e) => {
-    const { name, value, checked, type } = e.target;
+  const handleClose = useCallback(() => {
+    reset();
+    onClose();
+  }, [reset, onClose]);
 
-    // Si cambia el país, resetear state y city
-    if (name === 'country') {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-        state: '',
-        city: '',
-      }));
-    }
-    // Si cambia el departamento (state), resetear city
-    else if (name === 'state') {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-        city: '',
-      }));
-    }
-    // Formatear teléfono para Colombia
-    else if (name === 'phone') {
-      const formattedPhone = formatPhoneNumber(value);
-      setFormData((prev) => ({
-        ...prev,
-        [name]: formattedPhone,
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: type === 'checkbox' ? checked : value,
-      }));
-    }
-
-    // Clear error when user types
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }));
-    }
-  };
-
-  const validate = () => {
-    const newErrors = {};
-
-    if (!formData.code.trim()) {
-      newErrors.code = t('codeRequired') || 'El código es requerido';
-    }
-
-    if (!formData.name.trim()) {
-      newErrors.name = t('nameRequired') || 'El nombre es requerido';
-    }
-
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = t('invalidEmail') || 'Email inválido';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (validate()) {
-      // Remove empty strings and convert to appropriate types
-      const cleanedData = Object.entries(formData).reduce((acc, [key, value]) => {
-        if (typeof value === 'string' && value.trim() === '') {
-          return acc;
-        }
-        acc[key] = value;
+  const handleFormSubmit = useCallback((data) => {
+    const cleanedData = Object.entries(data).reduce((acc, [key, value]) => {
+      if (typeof value === 'string' && value.trim() === '') {
         return acc;
-      }, {});
+      }
+      acc[key] = value;
+      return acc;
+    }, {});
+    
+    onSubmit(cleanedData);
+  }, [onSubmit]);
 
-      onSubmit(cleanedData);
-    }
-  };
+  const handleGenerateCode = useCallback(() => {
+    const timestamp = Date.now().toString().slice(-6);
+    const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+    setValue('code', `WH-${timestamp}${random}`);
+  }, [setValue]);
+
+  if (!open) return null;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <form onSubmit={handleSubmit}>
-        <DialogTitle>
-          {warehouse
-            ? t('editWarehouse') || 'Editar Almacén'
-            : t('addWarehouse') || 'Agregar Almacén'}
-        </DialogTitle>
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/50 z-50"
+        onClick={handleClose}
+      />
 
-        <DialogContent>
-          <Box sx={{ pt: 2 }}>
-            {/* Basic Information */}
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              {t('basicInformation') || 'Información Básica'}
-            </Typography>
-            <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  label={t('code') || 'Código'}
-                  name="code"
-                  value={formData.code}
-                  onChange={handleChange}
-                  error={!!errors.code}
-                  helperText={errors.code}
-                  required
-                  autoFocus
-                  placeholder="WH-001"
-                />
-              </Grid>
-              <Grid item xs={12} sm={8}>
-                <TextField
-                  fullWidth
-                  label={t('name') || 'Nombre'}
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  error={!!errors.name}
-                  helperText={errors.name}
-                  required
-                  placeholder={t('warehouseNamePlaceholder') || 'Almacén Central'}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label={t('description') || 'Descripción'}
+      {/* Modal */}
+      <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-12 md:pt-20 pointer-events-none overflow-y-auto">
+        <div
+          className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[calc(100vh-6rem)] overflow-y-auto pointer-events-auto my-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="border-b border-gray-200 pb-4 mb-2 px-6 pt-6 sticky top-0 bg-white z-10">
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-3xl font-bold text-indigo-600 mb-1">
+                  {warehouse ? '✏️ Editar Almacén' : 'Nuevo Almacén'}
+                </h2>
+                <p className="text-sm text-gray-500">
+                  Complete la información del {warehouse ? 'almacén' : 'nuevo almacén'}
+                </p>
+              </div>
+              <button
+                onClick={handleClose}
+                className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100"
+                disabled={isLoading}
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-8 px-6 pb-6">
+            {/* Información Básica */}
+            <div className="space-y-4 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Warehouse className="h-5 w-5 text-indigo-600" />
+                Información Básica
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                {/* Código */}
+                <div className="md:col-span-4 space-y-2">
+                  <label htmlFor="code" className="block text-sm font-semibold text-gray-700">
+                    Código <span className="text-red-500">*</span>
+                  </label>
+                  <Controller
+                    name="code"
+                    control={control}
+                    render={({ field }) => (
+                      <div className="relative">
+                        <Building2 className="absolute left-3 top-3.5 h-5 w-5 text-gray-400 pointer-events-none" />
+                        <input
+                          {...field}
+                          id="code"
+                          type="text"
+                          className="w-full pl-11 pr-12 h-12 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors"
+                          placeholder="WH-001"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleGenerateCode}
+                          className="absolute right-2 top-2.5 p-1.5 rounded-md bg-indigo-50 hover:bg-indigo-100 transition-colors group"
+                          title="Generar código automático"
+                        >
+                          <Sparkles className="h-5 w-5 text-indigo-600 group-hover:text-indigo-700" />
+                        </button>
+                      </div>
+                    )}
+                  />
+                  {errors.code && (
+                    <p className="text-sm text-red-500 flex items-center gap-1">⚠️ {errors.code.message}</p>
+                  )}
+                </div>
+
+                {/* Nombre */}
+                <div className="md:col-span-8 space-y-2">
+                  <label htmlFor="name" className="block text-sm font-semibold text-gray-700">
+                    Nombre <span className="text-red-500">*</span>
+                  </label>
+                  <Controller
+                    name="name"
+                    control={control}
+                    render={({ field }) => (
+                      <div className="relative">
+                        <Warehouse className="absolute left-3 top-3.5 h-5 w-5 text-gray-400 pointer-events-none" />
+                        <input
+                          {...field}
+                          id="name"
+                          type="text"
+                          className="w-full pl-11 h-12 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors"
+                          placeholder="Almacén Central"
+                        />
+                      </div>
+                    )}
+                  />
+                  {errors.name && (
+                    <p className="text-sm text-red-500 flex items-center gap-1">⚠️ {errors.name.message}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Descripción */}
+              <div className="space-y-2">
+                <label htmlFor="description" className="block text-sm font-semibold text-gray-700">
+                  Descripción
+                </label>
+                <Controller
                   name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  multiline
-                  rows={2}
-                  placeholder={t('warehouseDescriptionPlaceholder') || 'Descripción del almacén...'}
+                  control={control}
+                  render={({ field }) => (
+                    <textarea
+                      {...field}
+                      id="description"
+                      rows={2}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors resize-none"
+                      placeholder="Descripción del almacén..."
+                    />
+                  )}
                 />
-              </Grid>
-            </Grid>
+              </div>
+            </div>
 
-            <Divider sx={{ my: 2 }} />
+            {/* Información de Ubicación */}
+            <div className="space-y-4 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-blue-600" />
+                Información de Ubicación
+              </h3>
 
-            {/* Location Information */}
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              {t('locationInformation') || 'Información de Ubicación'}
-            </Typography>
-            <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
-                  <InputLabel>{t('country') || 'País'}</InputLabel>
-                  <Select
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* País */}
+                <div className="space-y-2">
+                  <label htmlFor="country" className="block text-sm font-semibold text-gray-700">
+                    País
+                  </label>
+                  <Controller
                     name="country"
-                    value={formData.country}
-                    onChange={handleChange}
-                    label={t('country') || 'País'}
-                  >
-                    <MenuItem value="">
-                      <em>{t('selectCountry') || 'Seleccione un país'}</em>
-                    </MenuItem>
-                    {countries.map((country) => (
-                      <MenuItem key={country.code} value={country.code}>
-                        {country.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                {formData.country === 'CO' ? (
-                  <FormControl fullWidth>
-                    <InputLabel>{t('department') || 'Departamento'}</InputLabel>
-                    <Select
-                      name="state"
-                      value={formData.state}
-                      onChange={handleChange}
-                      label={t('department') || 'Departamento'}
-                    >
-                      <MenuItem value="">
-                        <em>{t('selectDepartment') || 'Seleccione un departamento'}</em>
-                      </MenuItem>
-                      {colombiaDepartments.map((dept) => (
-                        <MenuItem key={dept.code} value={dept.code}>
-                          {dept.name}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                ) : (
-                  <TextField
-                    fullWidth
-                    label={t('state') || 'Estado/Provincia'}
+                    control={control}
+                    render={({ field }) => (
+                      <div className="relative">
+                        <Globe className="absolute left-3 top-3.5 h-5 w-5 text-gray-400 pointer-events-none" />
+                        <select
+                          {...field}
+                          id="country"
+                          className="w-full pl-11 h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors bg-white cursor-pointer"
+                        >
+                          <option value="">Seleccione un país</option>
+                          {countries.map((country) => (
+                            <option key={country.code} value={country.code}>
+                              {country.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  />
+                </div>
+
+                {/* Departamento/Estado */}
+                <div className="space-y-2">
+                  <label htmlFor="state" className="block text-sm font-semibold text-gray-700">
+                    {selectedCountry === 'CO' ? 'Departamento' : 'Estado/Provincia'}
+                  </label>
+                  <Controller
                     name="state"
-                    value={formData.state}
-                    onChange={handleChange}
-                    placeholder={t('statePlaceholder') || 'Estado'}
+                    control={control}
+                    render={({ field }) => (
+                      selectedCountry === 'CO' ? (
+                        <select
+                          {...field}
+                          id="state"
+                          className="w-full h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors bg-white cursor-pointer"
+                        >
+                          <option value="">Seleccione un departamento</option>
+                          {colombiaDepartments.map((dept) => (
+                            <option key={dept.code} value={dept.code}>
+                              {dept.name}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          {...field}
+                          id="state"
+                          type="text"
+                          className="w-full h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors"
+                          placeholder="Estado"
+                        />
+                      )
+                    )}
                   />
-                )}
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                {formData.country === 'CO' && formData.state ? (
-                  <FormControl fullWidth>
-                    <InputLabel>{t('city') || 'Ciudad'}</InputLabel>
-                    <Select
-                      name="city"
-                      value={formData.city}
-                      onChange={handleChange}
-                      label={t('city') || 'Ciudad'}
-                    >
-                      <MenuItem value="">
-                        <em>{t('selectCity') || 'Seleccione una ciudad'}</em>
-                      </MenuItem>
-                      {colombiaCities[formData.state]?.map((city) => (
-                        <MenuItem key={city} value={city}>
-                          {city}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                ) : (
-                  <TextField
-                    fullWidth
-                    label={t('city') || 'Ciudad'}
+                </div>
+
+                {/* Ciudad */}
+                <div className="space-y-2">
+                  <label htmlFor="city" className="block text-sm font-semibold text-gray-700">
+                    Ciudad
+                  </label>
+                  <Controller
                     name="city"
-                    value={formData.city}
-                    onChange={handleChange}
-                    placeholder={t('cityPlaceholder') || 'Ciudad'}
+                    control={control}
+                    render={({ field }) => (
+                      selectedCountry === 'CO' && selectedState ? (
+                        <select
+                          {...field}
+                          id="city"
+                          className="w-full h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors bg-white cursor-pointer"
+                        >
+                          <option value="">Seleccione una ciudad</option>
+                          {colombiaCities[selectedState]?.map((city) => (
+                            <option key={city} value={city}>
+                              {city}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          {...field}
+                          id="city"
+                          type="text"
+                          className="w-full h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors"
+                          placeholder="Ciudad"
+                        />
+                      )
+                    )}
                   />
-                )}
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label={t('zipCode') || 'Código Postal'}
-                  name="zip"
-                  value={formData.zip}
-                  onChange={handleChange}
-                  placeholder="12345"
-                  helperText={t('zipCodeOptional') || 'Opcional'}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label={t('address') || 'Dirección'}
+                </div>
+
+                {/* Código Postal */}
+                <div className="space-y-2">
+                  <label htmlFor="zip" className="block text-sm font-semibold text-gray-700">
+                    Código Postal
+                  </label>
+                  <Controller
+                    name="zip"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        {...field}
+                        id="zip"
+                        type="text"
+                        className="w-full h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors"
+                        placeholder="12345"
+                      />
+                    )}
+                  />
+                  <p className="text-xs text-gray-400">Opcional</p>
+                </div>
+              </div>
+
+              {/* Dirección */}
+              <div className="space-y-2">
+                <label htmlFor="address" className="block text-sm font-semibold text-gray-700">
+                  Dirección
+                </label>
+                <Controller
                   name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  placeholder={t('addressPlaceholder') || 'Calle Principal 123'}
+                  control={control}
+                  render={({ field }) => (
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-3.5 h-5 w-5 text-gray-400 pointer-events-none" />
+                      <input
+                        {...field}
+                        id="address"
+                        type="text"
+                        className="w-full pl-11 h-12 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors"
+                        placeholder="Calle Principal 123"
+                      />
+                    </div>
+                  )}
                 />
-              </Grid>
-            </Grid>
+              </div>
+            </div>
 
-            <Divider sx={{ my: 2 }} />
+            {/* Información de Contacto */}
+            <div className="space-y-4 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Phone className="h-5 w-5 text-green-600" />
+                Información de Contacto
+              </h3>
 
-            {/* Contact Information */}
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              {t('contactInformation') || 'Información de Contacto'}
-            </Typography>
-            <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label={t('phone') || 'Teléfono'}
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  placeholder="+57 (300) 123-4567"
-                  inputProps={{ maxLength: 19 }}
-                  helperText="Formato: +57 (XXX) XXX-XXXX"
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label={t('email') || 'Email'}
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  error={!!errors.email}
-                  helperText={errors.email}
-                  placeholder="almacen@empresa.com"
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label={t('manager') || 'Responsable'}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Teléfono */}
+                <div className="space-y-2">
+                  <label htmlFor="phone" className="block text-sm font-semibold text-gray-700">
+                    Teléfono
+                  </label>
+                  <Controller
+                    name="phone"
+                    control={control}
+                    render={({ field }) => (
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-3.5 h-5 w-5 text-gray-400 pointer-events-none" />
+                        <input
+                          {...field}
+                          id="phone"
+                          type="text"
+                          maxLength={19}
+                          onChange={(e) => {
+                            const formatted = formatPhoneNumber(e.target.value);
+                            field.onChange(formatted);
+                          }}
+                          className="w-full pl-11 h-12 border border-gray-200 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-200 focus:outline-none transition-colors"
+                          placeholder="+57 (300) 123-4567"
+                        />
+                      </div>
+                    )}
+                  />
+                  <p className="text-xs text-gray-400">Formato: +57 (XXX) XXX-XXXX</p>
+                </div>
+
+                {/* Email */}
+                <div className="space-y-2">
+                  <label htmlFor="email" className="block text-sm font-semibold text-gray-700">
+                    Email
+                  </label>
+                  <Controller
+                    name="email"
+                    control={control}
+                    render={({ field }) => (
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-3.5 h-5 w-5 text-gray-400 pointer-events-none" />
+                        <input
+                          {...field}
+                          id="email"
+                          type="email"
+                          className="w-full pl-11 h-12 border border-gray-200 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-200 focus:outline-none transition-colors"
+                          placeholder="almacen@empresa.com"
+                        />
+                      </div>
+                    )}
+                  />
+                  {errors.email && (
+                    <p className="text-sm text-red-500">{errors.email.message}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Responsable */}
+              <div className="space-y-2">
+                <label htmlFor="managerName" className="block text-sm font-semibold text-gray-700">
+                  Responsable
+                </label>
+                <Controller
                   name="managerName"
-                  value={formData.managerName}
-                  onChange={handleChange}
-                  placeholder={t('managerNamePlaceholder') || 'Nombre del responsable'}
+                  control={control}
+                  render={({ field }) => (
+                    <div className="relative">
+                      <User className="absolute left-3 top-3.5 h-5 w-5 text-gray-400 pointer-events-none" />
+                      <input
+                        {...field}
+                        id="managerName"
+                        type="text"
+                        className="w-full pl-11 h-12 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors"
+                        placeholder="Nombre del responsable"
+                      />
+                    </div>
+                  )}
                 />
-              </Grid>
-            </Grid>
+              </div>
+            </div>
 
-            <Divider sx={{ my: 2 }} />
+            {/* Configuración */}
+            <div className="space-y-4 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-purple-600" />
+                Configuración
+              </h3>
 
-            {/* Settings */}
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              {t('settings') || 'Configuración'}
-            </Typography>
-            <FormControlLabel
-              control={
-                <Checkbox
+              {/* Switch Almacén Principal */}
+              <div className="flex items-center justify-between bg-gradient-to-r from-indigo-50 to-blue-50 p-4 rounded-lg border border-indigo-200">
+                <div>
+                  <label htmlFor="isMain" className="block text-sm font-semibold text-gray-700 cursor-pointer">
+                    Almacén Principal
+                  </label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Marca este almacén como principal
+                  </p>
+                </div>
+                <Controller
                   name="isMain"
-                  checked={formData.isMain}
-                  onChange={handleChange}
+                  control={control}
+                  render={({ field }) => (
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={field.value}
+                      onClick={() => field.onChange(!field.value)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                        field.value ? 'bg-indigo-600' : 'bg-gray-200'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          field.value ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  )}
                 />
-              }
-              label={
-                <Box>
-                  <Typography variant="body2">
-                    {t('mainWarehouse') || 'Almacén Principal'}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {t('mainWarehouseDescription') || 'Marca este almacén como principal'}
-                  </Typography>
-                </Box>
-              }
-            />
-          </Box>
-        </DialogContent>
+              </div>
+            </div>
 
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={onClose} disabled={isLoading}>
-            {t('cancel') || 'Cancelar'}
-          </Button>
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={isLoading}
-            sx={{
-              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-              '&:hover': {
-                background: 'linear-gradient(135deg, #5558e3 0%, #7c4de8 100%)',
-              },
-            }}
-          >
-            {isLoading
-              ? t('saving') || 'Guardando...'
-              : warehouse
-              ? t('update') || 'Actualizar'
-              : t('create') || 'Crear'}
-          </Button>
-        </DialogActions>
-      </form>
-    </Dialog>
+            {/* Footer */}
+            <div className="border-t border-gray-200 pt-6 flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={handleClose}
+                disabled={isLoading}
+                className="px-6 h-11 border-2 border-gray-300 hover:bg-gray-50 font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="px-8 h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading
+                  ? 'Guardando...'
+                  : warehouse
+                  ? 'Actualizar Almacén'
+                  : 'Crear Almacén'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </>
   );
 }

@@ -6,6 +6,9 @@ import {
   DollarSign,
   FileText,
   Loader2,
+  Warehouse,
+  Hash,
+  MapPin,
 } from 'lucide-react';
 import { useAuth } from '../../context/useAuth';
 import { inventoryService } from '../../services/inventory.service';
@@ -171,7 +174,7 @@ export default function InboundTransactionForm({ open, onClose, onSuccess }) {
           <div className="border-b border-gray-200 pb-4 mb-2 px-6 pt-6 sticky top-0 bg-white z-10">
             <div className="flex items-start justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-indigo-600 mb-1">
+                <h2 className="text-3xl font-bold text-indigo-600 mb-1">
                   Nueva Entrada de Inventario
                 </h2>
                 <p className="text-sm text-gray-500">
@@ -188,7 +191,7 @@ export default function InboundTransactionForm({ open, onClose, onSuccess }) {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="px-6 pb-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 px-6 pb-6">
             {loadingData ? (
               <div className="flex justify-center items-center py-16">
                 <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
@@ -196,7 +199,7 @@ export default function InboundTransactionForm({ open, onClose, onSuccess }) {
             ) : (
               <>
                 {/* Información Básica */}
-                <div className="space-y-4 mb-6">
+                <div className="space-y-4 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                   <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                     <Package className="h-5 w-5 text-indigo-600" />
                     Información Básica
@@ -213,18 +216,21 @@ export default function InboundTransactionForm({ open, onClose, onSuccess }) {
                         control={control}
                         rules={{ required: 'Producto es requerido' }}
                         render={({ field }) => (
-                          <select
-                            {...field}
-                            id="productId"
-                            className="w-full h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors bg-white cursor-pointer"
-                          >
-                            <option value="">Seleccionar producto</option>
-                            {products.map((product) => (
-                              <option key={product.id} value={product.id}>
-                                {product.name} ({product.sku})
-                              </option>
-                            ))}
-                          </select>
+                          <div className="relative">
+                            <Package className="absolute left-3 top-3.5 h-5 w-5 text-gray-400 pointer-events-none" />
+                            <select
+                              {...field}
+                              id="productId"
+                              className="w-full pl-11 h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors bg-white cursor-pointer"
+                            >
+                              <option value="">Seleccionar producto</option>
+                              {products.map((product) => (
+                                <option key={product.id} value={product.id}>
+                                  {product.name} ({product.sku})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
                         )}
                       />
                       {errors.productId && (
@@ -244,19 +250,22 @@ export default function InboundTransactionForm({ open, onClose, onSuccess }) {
                         control={control}
                         rules={{ required: 'Almacén es requerido' }}
                         render={({ field }) => (
-                          <select
-                            {...field}
-                            id="warehouseId"
-                            disabled={isUserRole}
-                            className="w-full h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors bg-white cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
-                          >
-                            <option value="">Seleccionar almacén</option>
-                            {warehouses.map((warehouse) => (
-                              <option key={warehouse.id} value={warehouse.id}>
-                                {warehouse.name} ({warehouse.code})
-                              </option>
-                            ))}
-                          </select>
+                          <div className="relative">
+                            <Warehouse className="absolute left-3 top-3.5 h-5 w-5 text-gray-400 pointer-events-none" />
+                            <select
+                              {...field}
+                              id="warehouseId"
+                              disabled={isUserRole}
+                              className="w-full pl-11 h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors bg-white cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            >
+                              <option value="">Seleccionar almacén</option>
+                              {warehouses.map((warehouse) => (
+                                <option key={warehouse.id} value={warehouse.id}>
+                                  {warehouse.name} ({warehouse.code})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
                         )}
                       />
                       {errors.warehouseId && (
@@ -265,7 +274,7 @@ export default function InboundTransactionForm({ open, onClose, onSuccess }) {
                         </p>
                       )}
                       {isUserRole && (
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-400">
                           Asignado automáticamente a tu almacén
                         </p>
                       )}
@@ -314,14 +323,27 @@ export default function InboundTransactionForm({ open, onClose, onSuccess }) {
                           min: { value: 1, message: 'Cantidad debe ser mayor a 0' },
                         }}
                         render={({ field }) => (
-                          <input
-                            {...field}
-                            id="quantity"
-                            type="number"
-                            min="1"
-                            className="w-full h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors"
-                            placeholder="0"
-                          />
+                          <div className="relative">
+                            <Hash className="absolute left-3 top-3.5 h-5 w-5 text-gray-400 pointer-events-none" />
+                            <input
+                              {...field}
+                              id="quantity"
+                              type="number"
+                              min="1"
+                              onFocus={(e) => {
+                                if (e.target.value === '0') {
+                                  field.onChange('');
+                                }
+                              }}
+                              onBlur={(e) => {
+                                if (e.target.value === '') {
+                                  field.onChange(0);
+                                }
+                              }}
+                              className="w-full pl-11 h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              placeholder="0"
+                            />
+                          </div>
                         )}
                       />
                       {errors.quantity && (
@@ -334,7 +356,7 @@ export default function InboundTransactionForm({ open, onClose, onSuccess }) {
                 </div>
 
                 {/* Información Financiera */}
-                <div className="space-y-4 mb-6">
+                <div className="space-y-4 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                   <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                     <DollarSign className="h-5 w-5 text-green-600" />
                     Información Financiera
@@ -361,6 +383,7 @@ export default function InboundTransactionForm({ open, onClose, onSuccess }) {
                               }}
                               id="unitCost"
                               type="text"
+                              inputMode="numeric"
                               className="w-full pl-20 h-12 border border-gray-200 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-200 focus:outline-none transition-colors"
                               placeholder="0"
                             />
@@ -368,7 +391,7 @@ export default function InboundTransactionForm({ open, onClose, onSuccess }) {
                         )}
                       />
                       <p className="text-xs text-gray-400">
-                        Opcional - Costo por unidad (acepta decimales)
+                        Opcional - Costo por unidad
                       </p>
                     </div>
 
@@ -381,13 +404,16 @@ export default function InboundTransactionForm({ open, onClose, onSuccess }) {
                         name="reference"
                         control={control}
                         render={({ field }) => (
-                          <input
-                            {...field}
-                            id="reference"
-                            type="text"
-                            className="w-full h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors"
-                            placeholder="FAC-12345"
-                          />
+                          <div className="relative">
+                            <FileText className="absolute left-3 top-3.5 h-5 w-5 text-gray-400 pointer-events-none" />
+                            <input
+                              {...field}
+                              id="reference"
+                              type="text"
+                              className="w-full pl-11 h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors"
+                              placeholder="FAC-12345"
+                            />
+                          </div>
                         )}
                       />
                       <p className="text-xs text-gray-400">
@@ -398,9 +424,9 @@ export default function InboundTransactionForm({ open, onClose, onSuccess }) {
                 </div>
 
                 {/* Información Adicional */}
-                <div className="space-y-4 mb-6">
+                <div className="space-y-4 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                   <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-blue-600" />
+                    <MapPin className="h-5 w-5 text-blue-600" />
                     Información Adicional
                   </h3>
 
@@ -414,13 +440,16 @@ export default function InboundTransactionForm({ open, onClose, onSuccess }) {
                         name="location"
                         control={control}
                         render={({ field }) => (
-                          <input
-                            {...field}
-                            id="location"
-                            type="text"
-                            className="w-full h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors"
-                            placeholder="Estante A-12, Pasillo 3"
-                          />
+                          <div className="relative">
+                            <MapPin className="absolute left-3 top-3.5 h-5 w-5 text-gray-400 pointer-events-none" />
+                            <input
+                              {...field}
+                              id="location"
+                              type="text"
+                              className="w-full pl-11 h-12 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors"
+                              placeholder="Ej: Pasillo A, Estante 3"
+                            />
+                          </div>
                         )}
                       />
                       <p className="text-xs text-gray-400">
