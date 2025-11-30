@@ -58,6 +58,7 @@ const InventoryPage = () => {
     sortOrder: 'DESC',
   });
   const [formOpen, setFormOpen] = useState(false);
+  const [productFormOpen, setProductFormOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
@@ -174,6 +175,17 @@ const InventoryPage = () => {
   const handleCloseForm = () => {
     setSelectedItem(null);
     setFormOpen(false);
+  };
+
+  const handleOpenProductForm = (item = null) => {
+    console.log('Opening ProductFormModal...');
+    setSelectedItem(item);
+    setProductFormOpen(true);
+  };
+
+  const handleCloseProductForm = () => {
+    setSelectedItem(null);
+    setProductFormOpen(false);
   };
 
   const handleSubmit = (formData) => {
@@ -314,7 +326,7 @@ const InventoryPage = () => {
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => handleOpenForm()}
+            onClick={() => handleOpenProductForm()}
             sx={{
               px: 3,
               py: 1.25,
@@ -435,6 +447,13 @@ const InventoryPage = () => {
       <ProductFormModal
         open={formOpen}
         onClose={handleCloseForm}
+        onSubmit={handleSubmit}
+        initialData={selectedItem}
+      />
+
+      <ProductFormModal
+        open={productFormOpen}
+        onClose={handleCloseProductForm}
         onSubmit={handleSubmit}
         initialData={selectedItem}
       />
