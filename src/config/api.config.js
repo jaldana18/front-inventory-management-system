@@ -163,4 +163,24 @@ export const API_ENDPOINTS = {
     list: '/payment-methods',
     getById: (id) => `/payment-methods/${id}`,
   },
+
+  // ==================== CATEGORIES ====================
+  categories: {
+    list: '/categories',
+    active: '/categories/active',
+    getById: (id) => `/categories/${id}`,
+    create: '/categories',
+    update: (id) => `/categories/${id}`,
+    delete: (id) => `/categories/${id}`,
+  },
+
+  // ==================== UNITS OF MEASURE ====================
+  unitsOfMeasure: {
+    list: '/units-of-measure',
+    active: '/units-of-measure/active',
+    getById: (id) => `/units-of-measure/${id}`,
+    create: '/units-of-measure',
+    update: (id) => `/units-of-measure/${id}`,
+    delete: (id) => `/units-of-measure/${id}`,
+  },
 };

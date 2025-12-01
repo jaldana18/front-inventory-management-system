@@ -28,7 +28,6 @@ import {
 import toast from 'react-hot-toast';
 import InventoryTable from '../components/inventory/InventoryTable';
 import InventoryForm from '../components/inventory/InventoryForm';
-import ProductFormModal from '../components/inventory/ProductFormModal';
 import InventoryFilters from '../components/inventory/InventoryFilters';
 import BulkUploadDialog from '../components/inventory/BulkUploadDialog';
 import BulkInventoryUploadDialog from '../components/inventory/BulkInventoryUploadDialog';
@@ -39,6 +38,7 @@ import ExportButton from '../components/common/ExportButton';
 import PrintButton from '../components/common/PrintButton';
 import StatsCard from '../components/common/StatsCard';
 import { inventoryService } from '../services/inventory.service';
+import { productService } from '../services/product.service';
 import { warehouseService } from '../services/warehouse.service';
 import { useInventoryStore } from '../store/inventoryStore';
 import { useLanguage } from '../context/LanguageContext';
@@ -58,7 +58,6 @@ const InventoryPage = () => {
     sortOrder: 'DESC',
   });
   const [formOpen, setFormOpen] = useState(false);
-  const [productFormOpen, setProductFormOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
@@ -130,7 +129,26 @@ const InventoryPage = () => {
 
   // Create mutation
   const createMutation = useMutation({
-    mutationFn: (data) => inventoryService.create(data),
+    mutationFn: (data) => {
+      console.log('Form data received:', data);
+      // Map form fields to API expected format
+      const productData = {
+        sku: data.sku,
+        name: data.name,
+        description: data.description || null,
+        category: data.category || null,
+        unitOfMeasure: data.unit,
+        minimumStock: data.minStock || 0,
+        reorderPoint: data.reorderPoint || data.minStock || 0,
+        cost: data.cost || 0,
+        price: data.price || 0,
+        isActive: data.isActive !== undefined ? data.isActive : true,
+        imageUrl: data.imageUrl || null,
+        initialStock: data.quantity || 0,
+      };
+      console.log('Product data to send:', productData);
+      return productService.create(productData);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-summary'] });
@@ -143,7 +161,23 @@ const InventoryPage = () => {
 
   // Update mutation
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => inventoryService.update(id, data),
+    mutationFn: ({ id, data }) => {
+      // Map form fields to API expected format
+      const productData = {
+        sku: data.sku,
+        name: data.name,
+        description: data.description || null,
+        category: data.category || null,
+        unitOfMeasure: data.unit,
+        minimumStock: data.minStock || 0,
+        reorderPoint: data.reorderPoint || data.minStock || 0,
+        cost: data.cost || 0,
+        price: data.price || 0,
+        isActive: data.isActive !== undefined ? data.isActive : true,
+        imageUrl: data.imageUrl || null,
+      };
+      return productService.update(id, productData);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-summary'] });
@@ -156,7 +190,7 @@ const InventoryPage = () => {
 
   // Delete mutation
   const deleteMutation = useMutation({
-    mutationFn: (id) => inventoryService.delete(id),
+    mutationFn: (id) => productService.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-summary'] });
@@ -175,17 +209,6 @@ const InventoryPage = () => {
   const handleCloseForm = () => {
     setSelectedItem(null);
     setFormOpen(false);
-  };
-
-  const handleOpenProductForm = (item = null) => {
-    console.log('Opening ProductFormModal...');
-    setSelectedItem(item);
-    setProductFormOpen(true);
-  };
-
-  const handleCloseProductForm = () => {
-    setSelectedItem(null);
-    setProductFormOpen(false);
   };
 
   const handleSubmit = (formData) => {
@@ -325,21 +348,6 @@ const InventoryPage = () => {
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <Button
             variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => handleOpenProductForm()}
-            sx={{
-              px: 3,
-              py: 1.25,
-              boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)',
-              '&:hover': {
-                boxShadow: '0 6px 16px rgba(99, 102, 241, 0.35)',
-              },
-            }}
-          >
-            {t('createNewItem')}
-          </Button>
-          <Button
-            variant="contained"
             startIcon={<LoadInventoryIcon />}
             onClick={() => setInventoryLoadFormOpen(true)}
             sx={{
@@ -443,20 +451,6 @@ const InventoryPage = () => {
           onView={handleOpenForm}
         />
       )}
-
-      <ProductFormModal
-        open={formOpen}
-        onClose={handleCloseForm}
-        onSubmit={handleSubmit}
-        initialData={selectedItem}
-      />
-
-      <ProductFormModal
-        open={productFormOpen}
-        onClose={handleCloseProductForm}
-        onSubmit={handleSubmit}
-        initialData={selectedItem}
-      />
 
       <ConfirmDialog
         open={deleteConfirmOpen}

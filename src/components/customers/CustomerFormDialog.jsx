@@ -1,19 +1,19 @@
 import { useEffect } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  Grid,
-  MenuItem,
-  Switch,
-  Typography,
-  Box,
-} from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import {
+  User,
+  FileText,
+  CreditCard,
+  Mail,
+  Phone,
+  MapPin,
+  Building2,
+  DollarSign,
+  X,
+  Users,
+  Globe,
+} from 'lucide-react';
 import { customerSchema, customerDefaultValues, documentTypeOptions, customerTypeOptions } from '../../schemas/customer.schema';
 import { useCreateCustomer, useUpdateCustomer } from '../../hooks/useCustomers';
 import { useSalesStore } from '../../store/salesStore';
@@ -63,7 +63,6 @@ const CustomerFormDialog = () => {
       state: normalize(data.state),
       zipCode: normalize(data.zipCode),
       notes: normalize(data.notes),
-      // Keep country as provided; if empty, send null
       country: normalize(data.country),
     };
     try {
@@ -86,592 +85,516 @@ const CustomerFormDialog = () => {
     reset(customerDefaultValues);
   };
 
+  if (!dialogOpen) return null;
+
   return (
-    <Dialog
-      open={dialogOpen}
-      onClose={handleClose}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 2,
-          boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.08)',
-          maxWidth: '890px',
-        },
-      }}
-    >
-      <DialogTitle sx={{ pb: 2, pt: 3, px: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 700, fontSize: '1.5rem', color: '#1a1a1a' }}>
-          {isEditMode ? 'Editar Cliente' : 'Agregar Cliente'}
-        </Typography>
-        <Typography variant="body2" sx={{ mt: 0.5, fontSize: '0.875rem', color: '#6b7280' }}>
-          {isEditMode ? 'Actualiza la información del cliente' : 'Completa la información del nuevo cliente'}
-        </Typography>
-      </DialogTitle>
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/50 z-50 animate-in fade-in duration-200"
+        onClick={handleClose}
+      />
 
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <DialogContent sx={{ pt: 3, pb: 3, px: 3 }}>
-          {/* Basic Information */}
-          <Box sx={{ mb: 3 }}>
-            <Typography
-              variant="subtitle1"
-              sx={{
-                fontWeight: 700,
-                mb: 1.5,
-                fontSize: '1rem',
-                color: '#1a1a1a'
-              }}
-            >
-              Información Básica
-            </Typography>
+      {/* Modal */}
+      <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-12 md:pt-20 pointer-events-none overflow-y-auto">
+        <div
+          className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[calc(100vh-6rem)] overflow-y-auto pointer-events-auto animate-in zoom-in-95 duration-200 my-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="border-b border-gray-200 pb-4 mb-2 px-6 pt-6 sticky top-0 bg-white z-10">
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-3xl font-bold text-indigo-600 mb-1">
+                  {isEditMode ? "✏️ Editar Cliente" : "Nuevo Cliente"}
+                </h2>
+                <p className="text-sm text-gray-500">
+                  {isEditMode ? "Actualiza la información del cliente" : "Complete la información del nuevo cliente"}
+                </p>
+              </div>
+              <button
+                onClick={handleClose}
+                className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+          </div>
 
-            <Grid container spacing={1.5}>
-              <Grid item xs={12} sm={6} md={3}>
-                <Controller
-                  name="name"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      size="small"
-                      error={!!errors.name}
-                      helperText={errors.name?.message}
-                      placeholder="Nombre *"
-                      InputLabelProps={{ shrink: true }}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          backgroundColor: '#f9fafb',
-                          '&:hover': {
-                            backgroundColor: '#f3f4f6',
-                          },
-                          '&.Mui-focused': {
-                            backgroundColor: '#fff',
-                          },
-                        },
-                      }}
-                    />
-                  )}
-                />
-              </Grid>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 px-6 pb-6">
+            {/* Información Básica */}
+            <div className="space-y-4 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <User className="h-5 w-5 text-indigo-600" />
+                Información Básica
+              </h3>
 
-              <Grid item xs={12} sm={6} md={3}>
-                <Controller
-                  name="documentType"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      select
-                      fullWidth
-                      size="small"
-                      error={!!errors.documentType}
-                      helperText={errors.documentType?.message}
-                      placeholder="Tipo de Documento *"
-                      InputLabelProps={{ shrink: true }}
-                      SelectProps={{
-                        displayEmpty: true,
-                        renderValue: (value) => {
-                          if (!value) return <span style={{ color: '#9ca3af' }}>Tipo de Documento *</span>;
-                          const option = documentTypeOptions.find(o => o.value === value);
-                          return option?.label || value;
-                        }
-                      }}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          backgroundColor: '#f9fafb',
-                          '&:hover': {
-                            backgroundColor: '#f3f4f6',
-                          },
-                          '&.Mui-focused': {
-                            backgroundColor: '#fff',
-                          },
-                        },
-                      }}
-                    >
-                      {documentTypeOptions.map((option) => (
-                        <MenuItem key={option.value} value={option.value}>
-                          {option.label}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                  )}
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6} md={3}>
-                <Controller
-                  name="documentNumber"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      size="small"
-                      error={!!errors.documentNumber}
-                      helperText={errors.documentNumber?.message}
-                      placeholder="Número de Documento *"
-                      InputLabelProps={{ shrink: true }}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          backgroundColor: '#f9fafb',
-                          '&:hover': {
-                            backgroundColor: '#f3f4f6',
-                          },
-                          '&.Mui-focused': {
-                            backgroundColor: '#fff',
-                          },
-                        },
-                      }}
-                    />
-                  )}
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6} md={3}>
-                <Controller
-                  name="customerType"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      select
-                      fullWidth
-                      size="small"
-                      error={!!errors.customerType}
-                      helperText={errors.customerType?.message}
-                      placeholder="Tipo de Cliente"
-                      InputLabelProps={{ shrink: true }}
-                      SelectProps={{
-                        displayEmpty: true,
-                        renderValue: (value) => {
-                          if (!value) return <span style={{ color: '#9ca3af' }}>Tipo de Cliente</span>;
-                          const option = customerTypeOptions.find(o => o.value === value);
-                          return option?.label || value;
-                        }
-                      }}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          backgroundColor: '#f9fafb',
-                          '&:hover': {
-                            backgroundColor: '#f3f4f6',
-                          },
-                          '&.Mui-focused': {
-                            backgroundColor: '#fff',
-                          },
-                        },
-                      }}
-                    >
-                      {customerTypeOptions.map((option) => (
-                        <MenuItem key={option.value} value={option.value}>
-                          {option.label}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                  )}
-                />
-              </Grid>
-
-              <Grid item xs={12}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Nombre del Cliente */}
+                <div className="space-y-2">
+                  <label htmlFor="name" className="block text-sm font-semibold text-gray-700">
+                    Nombre del Cliente <span className="text-red-500">*</span>
+                  </label>
                   <Controller
-                    name="taxResponsible"
+                    name="name"
                     control={control}
                     render={({ field }) => (
-                      <Switch
-                        checked={field.value}
-                        onChange={(e) => field.onChange(e.target.checked)}
-                        sx={{
-                          '& .MuiSwitch-switchBase.Mui-checked': {
-                            color: '#6366f1',
-                          },
-                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                            backgroundColor: '#6366f1',
-                          },
-                        }}
-                      />
+                      <div className="relative">
+                        <User className="absolute left-3 top-3.5 h-5 w-5 text-gray-400 pointer-events-none" />
+                        <input
+                          {...field}
+                          id="name"
+                          type="text"
+                          className="w-full pl-11 h-12 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors"
+                          placeholder="Ej: Juan Pérez"
+                        />
+                      </div>
                     )}
                   />
-                  <Typography variant="body2" sx={{ fontSize: '0.875rem', color: '#374151' }}>
-                    Responsable de IVA
-                  </Typography>
-                </Box>
-              </Grid>
-            </Grid>
-          </Box>
+                  {errors.name && (
+                    <p className="text-sm text-red-500 flex items-center gap-1">⚠️ {errors.name.message}</p>
+                  )}
+                </div>
 
-          {/* Contact Information */}
-          <Box sx={{ mb: 3 }}>
-            <Typography
-              variant="subtitle1"
-              sx={{
-                fontWeight: 700,
-                mb: 1.5,
-                fontSize: '1rem',
-                color: '#1a1a1a'
-              }}
-            >
-              Información de Contacto
-            </Typography>
+                {/* Tipo de Cliente */}
+                <div className="space-y-2">
+                  <label htmlFor="customerType" className="block text-sm font-semibold text-gray-700">
+                    Tipo de Cliente
+                  </label>
+                  <Controller
+                    name="customerType"
+                    control={control}
+                    render={({ field }) => (
+                      <div className="relative">
+                        <Users className="absolute left-3 top-3.5 h-5 w-5 text-gray-400 pointer-events-none" />
+                        <select
+                          {...field}
+                          id="customerType"
+                          className="w-full pl-11 h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors bg-white cursor-pointer appearance-none"
+                        >
+                          <option value="">Seleccionar tipo...</option>
+                          {customerTypeOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  />
+                  {errors.customerType && (
+                    <p className="text-sm text-red-500 flex items-center gap-1">
+                      ⚠️ {errors.customerType.message}
+                    </p>
+                  )}
+                </div>
+              </div>
 
-            <Grid container spacing={1.5}>
-              <Grid item xs={12} sm={4}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Tipo de Documento */}
+                <div className="space-y-2">
+                  <label htmlFor="documentType" className="block text-sm font-semibold text-gray-700">
+                    Tipo de Documento <span className="text-red-500">*</span>
+                  </label>
+                  <Controller
+                    name="documentType"
+                    control={control}
+                    render={({ field }) => (
+                      <div className="relative">
+                        <FileText className="absolute left-3 top-3.5 h-5 w-5 text-gray-400 pointer-events-none" />
+                        <select
+                          {...field}
+                          id="documentType"
+                          className="w-full pl-11 h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors bg-white cursor-pointer appearance-none"
+                        >
+                          <option value="">Seleccionar tipo...</option>
+                          {documentTypeOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  />
+                  {errors.documentType && (
+                    <p className="text-sm text-red-500 flex items-center gap-1">
+                      ⚠️ {errors.documentType.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Número de Documento */}
+                <div className="space-y-2">
+                  <label htmlFor="documentNumber" className="block text-sm font-semibold text-gray-700">
+                    Número de Documento <span className="text-red-500">*</span>
+                  </label>
+                  <Controller
+                    name="documentNumber"
+                    control={control}
+                    render={({ field }) => (
+                      <div className="relative">
+                        <CreditCard className="absolute left-3 top-3.5 h-5 w-5 text-gray-400 pointer-events-none" />
+                        <input
+                          {...field}
+                          id="documentNumber"
+                          type="text"
+                          className="w-full pl-11 h-12 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors"
+                          placeholder="Ej: 1234567890"
+                        />
+                      </div>
+                    )}
+                  />
+                  {errors.documentNumber && (
+                    <p className="text-sm text-red-500 flex items-center gap-1">
+                      ⚠️ {errors.documentNumber.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Switch Responsable de IVA */}
+              <div className="flex items-center justify-between bg-gradient-to-r from-indigo-50 to-blue-50 p-4 rounded-lg border border-indigo-200">
+                <label htmlFor="taxResponsible" className="text-sm font-semibold text-gray-700 cursor-pointer">
+                  Responsable de IVA
+                </label>
                 <Controller
-                  name="email"
+                  name="taxResponsible"
                   control={control}
                   render={({ field }) => (
-                    <TextField
-                      {...field}
-                      type="email"
-                      fullWidth
-                      size="small"
-                      error={!!errors.email}
-                      helperText={errors.email?.message}
-                      placeholder="Correo electrónico"
-                      InputLabelProps={{ shrink: true }}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          backgroundColor: '#f9fafb',
-                          '&:hover': {
-                            backgroundColor: '#f3f4f6',
-                          },
-                          '&.Mui-focused': {
-                            backgroundColor: '#fff',
-                          },
-                        },
-                      }}
-                    />
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={field.value}
+                      onClick={() => field.onChange(!field.value)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                        field.value ? 'bg-indigo-600' : 'bg-gray-200'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          field.value ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
                   )}
                 />
-              </Grid>
+              </div>
+            </div>
 
-              <Grid item xs={12} sm={4}>
-                <Controller
-                  name="phone"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      size="small"
-                      error={!!errors.phone}
-                      helperText={errors.phone?.message}
-                      placeholder="Teléfono"
-                      InputLabelProps={{ shrink: true }}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          backgroundColor: '#f9fafb',
-                          '&:hover': {
-                            backgroundColor: '#f3f4f6',
-                          },
-                          '&.Mui-focused': {
-                            backgroundColor: '#fff',
-                          },
-                        },
-                      }}
-                    />
+            {/* Información de Contacto */}
+            <div className="space-y-4 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Phone className="h-5 w-5 text-green-600" />
+                Información de Contacto
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Email */}
+                <div className="space-y-2">
+                  <label htmlFor="email" className="block text-sm font-semibold text-gray-700">
+                    Correo Electrónico
+                  </label>
+                  <Controller
+                    name="email"
+                    control={control}
+                    render={({ field }) => (
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-3.5 h-5 w-5 text-gray-400 pointer-events-none" />
+                        <input
+                          {...field}
+                          id="email"
+                          type="email"
+                          className="w-full pl-11 h-12 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors"
+                          placeholder="correo@ejemplo.com"
+                        />
+                      </div>
+                    )}
+                  />
+                  {errors.email && (
+                    <p className="text-sm text-red-500">{errors.email.message}</p>
                   )}
-                />
-              </Grid>
+                </div>
 
-              <Grid item xs={12} sm={4}>
+                {/* Teléfono */}
+                <div className="space-y-2">
+                  <label htmlFor="phone" className="block text-sm font-semibold text-gray-700">
+                    Teléfono
+                  </label>
+                  <Controller
+                    name="phone"
+                    control={control}
+                    render={({ field }) => (
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-3.5 h-5 w-5 text-gray-400 pointer-events-none" />
+                        <input
+                          {...field}
+                          id="phone"
+                          type="text"
+                          className="w-full pl-11 h-12 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors"
+                          placeholder="+57 300 123 4567"
+                        />
+                      </div>
+                    )}
+                  />
+                  {errors.phone && (
+                    <p className="text-sm text-red-500">{errors.phone.message}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Dirección */}
+              <div className="space-y-2">
+                <label htmlFor="address" className="block text-sm font-semibold text-gray-700">
+                  Dirección
+                </label>
                 <Controller
                   name="address"
                   control={control}
                   render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      size="small"
-                      error={!!errors.address}
-                      helperText={errors.address?.message}
-                      placeholder="Dirección"
-                      InputLabelProps={{ shrink: true }}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          backgroundColor: '#f9fafb',
-                          '&:hover': {
-                            backgroundColor: '#f3f4f6',
-                          },
-                          '&.Mui-focused': {
-                            backgroundColor: '#fff',
-                          },
-                        },
-                      }}
-                    />
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-3.5 h-5 w-5 text-gray-400 pointer-events-none" />
+                      <input
+                        {...field}
+                        id="address"
+                        type="text"
+                        className="w-full pl-11 h-12 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors"
+                        placeholder="Calle 123 #45-67"
+                      />
+                    </div>
                   )}
                 />
-              </Grid>
+                {errors.address && (
+                  <p className="text-sm text-red-500">{errors.address.message}</p>
+                )}
+              </div>
 
-              <Grid item xs={12} sm={4}>
-                <Controller
-                  name="city"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      size="small"
-                      error={!!errors.city}
-                      helperText={errors.city?.message}
-                      placeholder="Ciudad"
-                      InputLabelProps={{ shrink: true }}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          backgroundColor: '#f9fafb',
-                          '&:hover': {
-                            backgroundColor: '#f3f4f6',
-                          },
-                          '&.Mui-focused': {
-                            backgroundColor: '#fff',
-                          },
-                        },
-                      }}
-                    />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Ciudad */}
+                <div className="space-y-2">
+                  <label htmlFor="city" className="block text-sm font-semibold text-gray-700">
+                    Ciudad
+                  </label>
+                  <Controller
+                    name="city"
+                    control={control}
+                    render={({ field }) => (
+                      <div className="relative">
+                        <Building2 className="absolute left-3 top-3.5 h-5 w-5 text-gray-400 pointer-events-none" />
+                        <input
+                          {...field}
+                          id="city"
+                          type="text"
+                          className="w-full pl-11 h-12 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors"
+                          placeholder="Bogotá"
+                        />
+                      </div>
+                    )}
+                  />
+                  {errors.city && (
+                    <p className="text-sm text-red-500">{errors.city.message}</p>
                   )}
-                />
-              </Grid>
+                </div>
 
-              <Grid item xs={12} sm={4}>
-                <Controller
-                  name="state"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      size="small"
-                      error={!!errors.state}
-                      helperText={errors.state?.message}
-                      placeholder="Estado/Provincia"
-                      InputLabelProps={{ shrink: true }}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          backgroundColor: '#f9fafb',
-                          '&:hover': {
-                            backgroundColor: '#f3f4f6',
-                          },
-                          '&.Mui-focused': {
-                            backgroundColor: '#fff',
-                          },
-                        },
-                      }}
-                    />
+                {/* Estado/Provincia */}
+                <div className="space-y-2">
+                  <label htmlFor="state" className="block text-sm font-semibold text-gray-700">
+                    Estado/Provincia
+                  </label>
+                  <Controller
+                    name="state"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        {...field}
+                        id="state"
+                        type="text"
+                        className="w-full h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors"
+                        placeholder="Cundinamarca"
+                      />
+                    )}
+                  />
+                  {errors.state && (
+                    <p className="text-sm text-red-500">{errors.state.message}</p>
                   )}
-                />
-              </Grid>
+                </div>
 
-              <Grid item xs={12} sm={4}>
-                <Controller
-                  name="country"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      size="small"
-                      error={!!errors.country}
-                      helperText={errors.country?.message}
-                      placeholder="País"
-                      InputLabelProps={{ shrink: true }}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          backgroundColor: '#f9fafb',
-                          '&:hover': {
-                            backgroundColor: '#f3f4f6',
-                          },
-                          '&.Mui-focused': {
-                            backgroundColor: '#fff',
-                          },
-                        },
-                      }}
-                    />
+                {/* País */}
+                <div className="space-y-2">
+                  <label htmlFor="country" className="block text-sm font-semibold text-gray-700">
+                    País
+                  </label>
+                  <Controller
+                    name="country"
+                    control={control}
+                    render={({ field }) => (
+                      <div className="relative">
+                        <Globe className="absolute left-3 top-3.5 h-5 w-5 text-gray-400 pointer-events-none" />
+                        <input
+                          {...field}
+                          id="country"
+                          type="text"
+                          className="w-full pl-11 h-12 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors"
+                          placeholder="Colombia"
+                        />
+                      </div>
+                    )}
+                  />
+                  {errors.country && (
+                    <p className="text-sm text-red-500">{errors.country.message}</p>
                   )}
-                />
-              </Grid>
+                </div>
+              </div>
 
-              <Grid item xs={12} sm={6}>
-                <Controller
-                  name="zipCode"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      size="small"
-                      error={!!errors.zipCode}
-                      helperText={errors.zipCode?.message}
-                      placeholder="Código Postal"
-                      InputLabelProps={{ shrink: true }}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          backgroundColor: '#f9fafb',
-                          '&:hover': {
-                            backgroundColor: '#f3f4f6',
-                          },
-                          '&.Mui-focused': {
-                            backgroundColor: '#fff',
-                          },
-                        },
-                      }}
-                    />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Código Postal */}
+                <div className="space-y-2">
+                  <label htmlFor="zipCode" className="block text-sm font-semibold text-gray-700">
+                    Código Postal
+                  </label>
+                  <Controller
+                    name="zipCode"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        {...field}
+                        id="zipCode"
+                        type="text"
+                        className="w-full h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors"
+                        placeholder="110111"
+                      />
+                    )}
+                  />
+                  {errors.zipCode && (
+                    <p className="text-sm text-red-500">{errors.zipCode.message}</p>
                   )}
-                />
-              </Grid>
+                </div>
 
-              <Grid item xs={12} sm={6}>
-                <Controller
-                  name="creditLimit"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      type="number"
-                      fullWidth
-                      size="small"
-                      error={!!errors.creditLimit}
-                      helperText={errors.creditLimit?.message}
-                      placeholder="Límite de Crédito"
-                      InputLabelProps={{ shrink: true }}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          backgroundColor: '#f9fafb',
-                          '&:hover': {
-                            backgroundColor: '#f3f4f6',
-                          },
-                          '&.Mui-focused': {
-                            backgroundColor: '#fff',
-                          },
-                        },
-                      }}
-                    />
+                {/* Límite de Crédito */}
+                <div className="space-y-2">
+                  <label htmlFor="creditLimit" className="block text-sm font-semibold text-gray-700">
+                    Límite de Crédito
+                  </label>
+                  <Controller
+                    name="creditLimit"
+                    control={control}
+                    render={({ field }) => (
+                      <div className="relative">
+                        <span className="absolute left-3 top-3.5 text-gray-500 font-medium text-sm pointer-events-none">COP $</span>
+                        <input
+                          {...field}
+                          id="creditLimit"
+                          type="text"
+                          inputMode="numeric"
+                          value={field.value ? new Intl.NumberFormat('es-CO').format(field.value) : ''}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/[^0-9]/g, '');
+                            field.onChange(value ? parseFloat(value) : 0);
+                          }}
+                          onFocus={(e) => {
+                            if (field.value === 0) {
+                              field.onChange('');
+                            }
+                          }}
+                          onBlur={(e) => {
+                            if (!field.value || field.value === '') {
+                              field.onChange(0);
+                            }
+                          }}
+                          className="w-full pl-20 h-12 border border-gray-200 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-200 focus:outline-none transition-colors"
+                          placeholder="0"
+                        />
+                      </div>
+                    )}
+                  />
+                  {errors.creditLimit && (
+                    <p className="text-sm text-red-500">{errors.creditLimit.message}</p>
                   )}
-                />
-              </Grid>
-            </Grid>
-          </Box>
+                </div>
+              </div>
+            </div>
 
-          {/* Additional Information */}
-          <Box>
-            <Typography
-              variant="subtitle1"
-              sx={{
-                fontWeight: 700,
-                mb: 1.5,
-                fontSize: '1rem',
-                color: '#1a1a1a'
-              }}
-            >
-              Información Adicional
-            </Typography>
+            {/* Información Adicional */}
+            <div className="space-y-4 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <FileText className="h-5 w-5 text-blue-600" />
+                Información Adicional
+              </h3>
 
-            <Grid container spacing={1.5} alignItems="flex-start">
-              <Grid item xs={12} sm={9.5}>
+              {/* Notas */}
+              <div className="space-y-2">
+                <label htmlFor="notes" className="block text-sm font-semibold text-gray-700">
+                  Notas
+                </label>
                 <Controller
                   name="notes"
                   control={control}
                   render={({ field }) => (
-                    <TextField
+                    <textarea
                       {...field}
-                      multiline
+                      id="notes"
                       rows={4}
-                      fullWidth
-                      size="small"
-                      error={!!errors.notes}
-                      helperText={errors.notes?.message}
-                      placeholder="Notas"
-                      InputLabelProps={{ shrink: true }}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          backgroundColor: '#f9fafb',
-                          '&:hover': {
-                            backgroundColor: '#f3f4f6',
-                          },
-                          '&.Mui-focused': {
-                            backgroundColor: '#fff',
-                          },
-                        },
-                      }}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors resize-none"
+                      placeholder="Notas adicionales sobre el cliente..."
                     />
                   )}
                 />
-              </Grid>
+                {errors.notes && (
+                  <p className="text-sm text-red-500">{errors.notes.message}</p>
+                )}
+              </div>
 
-              <Grid item xs={12} sm={2.5} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', pt: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                  <Controller
-                    name="isActive"
-                    control={control}
-                    render={({ field }) => (
-                      <Switch
-                        checked={field.value}
-                        onChange={(e) => field.onChange(e.target.checked)}
-                        sx={{
-                          '& .MuiSwitch-switchBase.Mui-checked': {
-                            color: '#6366f1',
-                          },
-                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                            backgroundColor: '#6366f1',
-                          },
-                        }}
+              {/* Switch Cliente Activo */}
+              <div className="flex items-center justify-between bg-gradient-to-r from-indigo-50 to-blue-50 p-4 rounded-lg border border-indigo-200">
+                <label htmlFor="isActive" className="text-sm font-semibold text-gray-700 cursor-pointer">
+                  Cliente activo
+                </label>
+                <Controller
+                  name="isActive"
+                  control={control}
+                  render={({ field }) => (
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={field.value}
+                      onClick={() => field.onChange(!field.value)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                        field.value ? 'bg-indigo-600' : 'bg-gray-200'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          field.value ? 'translate-x-6' : 'translate-x-1'
+                        }`}
                       />
-                    )}
-                  />
-                  <Typography variant="body2" sx={{ fontSize: '0.875rem', color: '#374151' }}>
-                    Activo
-                  </Typography>
-                </Box>
-              </Grid>
-            </Grid>
-          </Box>
-        </DialogContent>
+                    </button>
+                  )}
+                />
+              </div>
+            </div>
 
-        <DialogActions sx={{ px: 3, py: 3, gap: 2, borderTop: '1px solid #f3f4f6' }}>
-          <Button
-            onClick={handleClose}
-            disabled={isSubmitting}
-            sx={{
-              textTransform: 'none',
-              color: '#6b7280',
-              fontWeight: 500,
-              fontSize: '0.9375rem',
-              px: 3,
-              py: 1,
-              '&:hover': {
-                backgroundColor: '#f9fafb',
-              },
-            }}
-          >
-            Cancelar
-          </Button>
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={isSubmitting}
-            sx={{
-              textTransform: 'none',
-              fontWeight: 600,
-              fontSize: '0.9375rem',
-              px: 4,
-              py: 1,
-              backgroundColor: '#6366f1',
-              boxShadow: 'none',
-              '&:hover': {
-                backgroundColor: '#4f46e5',
-                boxShadow: 'none',
-              },
-              '&:disabled': {
-                backgroundColor: '#c7d2fe',
-                color: '#fff',
-              },
-            }}
-          >
-            {isSubmitting ? 'Guardando...' : isEditMode ? 'Actualizar' : 'Crear'}
-          </Button>
-        </DialogActions>
-      </form>
-    </Dialog>
+            {/* Footer */}
+            <div className="border-t border-gray-200 pt-6 flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={handleClose}
+                disabled={isSubmitting}
+                className="px-6 h-11 border-2 border-gray-300 hover:bg-gray-50 font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="px-8 h-11 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? 'Guardando...' : isEditMode ? 'Actualizar Cliente' : 'Crear Cliente'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </>
   );
 };
 

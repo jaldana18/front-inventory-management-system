@@ -20,9 +20,10 @@ import {
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { useLanguage } from '../../context/LanguageContext';
+import { translateCategory } from '../../utils/catalogTranslations';
 
 const InventoryTable = ({ data, onEdit, onDelete, onView }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
@@ -136,7 +137,7 @@ const InventoryTable = ({ data, onEdit, onDelete, onView }) => {
                       fontSize: '0.7rem',
                     }}
                   >
-                    {item.category}
+                    {translateCategory(item.category, language)}
                   </Typography>
                 </TableCell>
                 <TableCell align="right" sx={{ py: 0.75 }}>
@@ -156,9 +157,27 @@ const InventoryTable = ({ data, onEdit, onDelete, onView }) => {
                   </Typography>
                 </TableCell>
                 <TableCell sx={{ py: 0.75 }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                    —
-                  </Typography>
+                  <Box
+                    sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      px: 1,
+                      py: 0.25,
+                      borderRadius: 1,
+                      backgroundColor: item.isActive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(107, 114, 128, 0.1)',
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontSize: '0.65rem',
+                        fontWeight: 600,
+                        color: item.isActive ? '#10b981' : '#6b7280',
+                      }}
+                    >
+                      {item.isActive ? t('active') : t('inactive')}
+                    </Typography>
+                  </Box>
                 </TableCell>
                 <TableCell sx={{ py: 0.75 }}>
                   <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>

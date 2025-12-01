@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useQuery } from "@tanstack/react-query";
 import {
   Package,
   QrCode,
@@ -11,6 +12,10 @@ import {
   Box,
   MapPin,
 } from "lucide-react";
+import { categoryService } from "../../services/category.service";
+import { unitOfMeasureService } from "../../services/unitOfMeasure.service";
+import { useLanguage } from "../../context/LanguageContext";
+import { translateCategories, translateUnits } from "../../utils/catalogTranslations";
 
 // Esquema de validación
 const productSchema = z.object({
@@ -32,31 +37,6 @@ const productSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-// Categorías predefinidas
-const categories = [
-  "Electrónica",
-  "Ropa",
-  "Alimentos",
-  "Bebidas",
-  "Muebles",
-  "Herramientas",
-  "Juguetes",
-  "Deportes",
-  "Libros",
-  "Otros",
-];
-
-// Unidades de medida
-const units = [
-  { label: "Pieza", value: "Piez" },
-  { label: "Caja", value: "Caja" },
-  { label: "Paquete", value: "Paquete" },
-  { label: "Kilogramo", value: "kg" },
-  { label: "Gramo", value: "g" },
-  { label: "Litro", value: "l" },
-  { label: "Unidad", value: "Unidad" },
-];
-
 /**
  * @param {Object} props
  * @param {boolean} props.open
@@ -72,6 +52,25 @@ export const ProductFormModal = ({
 }) => {
   const [tags, setTags] = useState([]);
   const [currentTag, setCurrentTag] = useState("");
+  const { language } = useLanguage();
+
+  // Fetch categories from backend
+  const { data: categoriesData, isLoading: categoriesLoading } = useQuery({
+    queryKey: ['categories-active'],
+    queryFn: () => categoryService.getActive(),
+    enabled: open, // Only fetch when modal is open
+  });
+
+  // Fetch units of measure from backend
+  const { data: unitsData, isLoading: unitsLoading } = useQuery({
+    queryKey: ['units-of-measure-active'],
+    queryFn: () => unitOfMeasureService.getActive(),
+    enabled: open, // Only fetch when modal is open
+  });
+
+  // Extract and translate categories and units from API response
+  const categories = translateCategories(categoriesData?.data || [], language);
+  const units = translateUnits(unitsData?.data || [], language);
 
   const {
     control,
@@ -86,7 +85,7 @@ export const ProductFormModal = ({
       sku: "",
       description: "",
       category: "",
-      unit: "Piez",
+      unit: "",
       cost: 0,
       price: 0,
       quantity: 0,
@@ -105,7 +104,7 @@ export const ProductFormModal = ({
         sku: initialData.sku || "",
         description: initialData.description || "",
         category: initialData.category || "",
-        unit: initialData.unitOfMeasure || initialData.unit || "Piez",
+        unit: initialData.unitOfMeasure || initialData.unit || "",
         cost: initialData.cost || 0,
         price: initialData.price || initialData.unitPrice || 0,
         quantity: initialData.currentStock || initialData.quantity || 0,
@@ -122,7 +121,7 @@ export const ProductFormModal = ({
         sku: "",
         description: "",
         category: "",
-        unit: "Piez",
+        unit: "",
         cost: 0,
         price: 0,
         quantity: 0,
@@ -300,11 +299,15 @@ export const ProductFormModal = ({
                       <select
                         {...field}
                         id="unit"
-                        className="w-full h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors bg-white cursor-pointer"
+                        disabled={unitsLoading}
+                        className="w-full h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors bg-white cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
                       >
+                        <option value="">
+                          {unitsLoading ? "Cargando..." : "Seleccionar..."}
+                        </option>
                         {units.map((unit) => (
-                          <option key={unit.value} value={unit.value}>
-                            {unit.label}
+                          <option key={unit.id} value={unit.code}>
+                            {unit.translatedName} ({unit.symbol})
                           </option>
                         ))}
                       </select>
@@ -327,12 +330,15 @@ export const ProductFormModal = ({
                       <select
                         {...field}
                         id="category"
-                        className="w-full h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors bg-white cursor-pointer"
+                        disabled={categoriesLoading}
+                        className="w-full h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors bg-white cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
                       >
-                        <option value="">Seleccionar...</option>
+                        <option value="">
+                          {categoriesLoading ? "Cargando..." : "Seleccionar..."}
+                        </option>
                         {categories.map((category) => (
-                          <option key={category} value={category}>
-                            {category}
+                          <option key={category.id} value={category.name}>
+                            {category.translatedName}
                           </option>
                         ))}
                       </select>
