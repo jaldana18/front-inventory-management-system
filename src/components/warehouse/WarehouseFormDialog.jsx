@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { countries, colombiaDepartments, colombiaCities } from '../../data/colombiaData';
+import PhoneInput from '../common/PhoneInput';
 
 // Esquema de validación
 const warehouseSchema = z.object({
@@ -26,7 +27,16 @@ const warehouseSchema = z.object({
   state: z.string().optional(),
   zip: z.string().optional(),
   country: z.string().optional(),
-  phone: z.string().optional(),
+  phone: z
+    .string()
+    .refine((val) => {
+      if (!val) return true;
+      return /^[0-9]+$/.test(val);
+    }, 'Solo se permiten números')
+    .optional()
+    .nullable()
+    .or(z.literal('')),
+  phoneCountryCode: z.string().optional().default('CO'),
   email: z.string().email('Email inválido').optional().or(z.literal('')),
   managerName: z.string().optional(),
   isMain: z.boolean().optional(),
@@ -54,6 +64,7 @@ export default function WarehouseFormDialog({ open, warehouse, onClose, onSubmit
       zip: '',
       country: '',
       phone: '',
+      phoneCountryCode: 'CO',
       email: '',
       managerName: '',
       isMain: false,
@@ -75,6 +86,7 @@ export default function WarehouseFormDialog({ open, warehouse, onClose, onSubmit
         zip: warehouse.zip || '',
         country: warehouse.country || '',
         phone: warehouse.phone || '',
+        phoneCountryCode: warehouse.phoneCountryCode || 'CO',
         email: warehouse.email || '',
         managerName: warehouse.managerName || '',
         isMain: warehouse.isMain || false,
@@ -90,6 +102,7 @@ export default function WarehouseFormDialog({ open, warehouse, onClose, onSubmit
         zip: '',
         country: '',
         phone: '',
+        phoneCountryCode: 'CO',
         email: '',
         managerName: '',
         isMain: false,
@@ -111,13 +124,6 @@ export default function WarehouseFormDialog({ open, warehouse, onClose, onSubmit
       setValue('city', '');
     }
   }, [selectedState, selectedCountry, setValue]);
-  const formatPhoneNumber = (value) => {
-    const numbers = value.replace(/\D/g, '');
-    if (numbers.length <= 2) return numbers;
-    if (numbers.length <= 5) return `+57 (${numbers.slice(2)})`;
-    if (numbers.length <= 8) return `+57 (${numbers.slice(2, 5)}) ${numbers.slice(5)}`;
-    return `+57 (${numbers.slice(2, 5)}) ${numbers.slice(5, 8)}-${numbers.slice(8, 12)}`;
-  };
 
   const handleClose = useCallback(() => {
     reset();
@@ -438,25 +444,24 @@ export default function WarehouseFormDialog({ open, warehouse, onClose, onSubmit
                   <Controller
                     name="phone"
                     control={control}
-                    render={({ field }) => (
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-3.5 h-5 w-5 text-gray-400 pointer-events-none" />
-                        <input
-                          {...field}
-                          id="phone"
-                          type="text"
-                          maxLength={19}
-                          onChange={(e) => {
-                            const formatted = formatPhoneNumber(e.target.value);
-                            field.onChange(formatted);
-                          }}
-                          className="w-full pl-11 h-12 border border-gray-200 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-200 focus:outline-none transition-colors"
-                          placeholder="+57 (300) 123-4567"
-                        />
-                      </div>
+                    render={({ field: phoneField }) => (
+                      <Controller
+                        name="phoneCountryCode"
+                        control={control}
+                        render={({ field: countryField }) => (
+                          <PhoneInput
+                            value={phoneField.value || ''}
+                            onChange={phoneField.onChange}
+                            countryCode={countryField.value}
+                            onCountryChange={countryField.onChange}
+                            id="phone"
+                            placeholder="Número de teléfono"
+                            error={errors.phone?.message}
+                          />
+                        )}
+                      />
                     )}
                   />
-                  <p className="text-xs text-gray-400">Formato: +57 (XXX) XXX-XXXX</p>
                 </div>
 
                 {/* Email */}

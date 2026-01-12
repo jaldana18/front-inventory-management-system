@@ -3,6 +3,45 @@ import { API_ENDPOINTS } from '../config/api.config';
 
 export const paymentMethodService = {
   /**
+   * Parse metadata field from JSON string
+   * @private
+   */
+  _parseMetadata: (metadataString) => {
+    try {
+      return typeof metadataString === 'string' 
+        ? JSON.parse(metadataString) 
+        : metadataString || {};
+    } catch (error) {
+      console.error('Error parsing payment method metadata:', error);
+      return {};
+    }
+  },
+
+  /**
+   * Transform payment method from API response
+   * @private
+   */
+  _transformPaymentMethod: (method) => {
+    const metadata = paymentMethodService._parseMetadata(method.metadata);
+    
+    return {
+      id: method.id,
+      companyId: method.companyId,
+      name: method.name,
+      code: method.code,
+      channel: method.channel,
+      requiresReference: method.requiresReference,
+      isActive: method.isActive,
+      metadata,
+      icon: metadata.icon || paymentMethodService.getIcon(method.code),
+      color: metadata.color || paymentMethodService.getColor(method.code),
+      description: metadata.description || method.name,
+      createdAt: method.createdAt,
+      updatedAt: method.updatedAt,
+    };
+  },
+
+  /**
    * Get all payment methods
    * Returns only active payment methods by default
    *
@@ -11,7 +50,10 @@ export const paymentMethodService = {
    * @returns {Promise} Array of payment methods
    */
   getAll: async (params = {}) => {
-    return apiClient.get(API_ENDPOINTS.paymentMethods.list, { params });
+    const response = await apiClient.get(API_ENDPOINTS.paymentMethods.list, { params });
+    const methods = response.data || response || [];
+    
+    return methods.map(paymentMethodService._transformPaymentMethod);
   },
 
   /**
@@ -20,7 +62,8 @@ export const paymentMethodService = {
    * @returns {Promise} Payment method details
    */
   getById: async (id) => {
-    return apiClient.get(API_ENDPOINTS.paymentMethods.getById(id));
+    const response = await apiClient.get(API_ENDPOINTS.paymentMethods.getById(id));
+    return paymentMethodService._transformPaymentMethod(response.data || response);
   },
 
   /**
@@ -31,16 +74,25 @@ export const paymentMethodService = {
    */
   getActiveForSelector: async () => {
     const response = await apiClient.get(API_ENDPOINTS.paymentMethods.list, {
-      params: { isActive: true },
+      params: { activeOnly: true },
     });
 
+    const methods = response.data || response || [];
+
     // Return data in format suitable for selects/dropdowns
-    return response.data?.map((method) => ({
-      id: method.id,
-      name: method.name,
-      code: method.code,
-      requiresReference: method.requiresReference || false,
-    }));
+    return methods.map((method) => {
+      const metadata = paymentMethodService._parseMetadata(method.metadata);
+      
+      return {
+        id: method.id,
+        name: method.name,
+        code: method.code,
+        channel: method.channel,
+        requiresReference: method.requiresReference || false,
+        icon: metadata.icon || paymentMethodService.getIcon(method.code),
+        color: metadata.color || paymentMethodService.getColor(method.code),
+      };
+    });
   },
 
   /**
@@ -50,8 +102,8 @@ export const paymentMethodService = {
    */
   requiresReference: async (id) => {
     try {
-      const response = await paymentMethodService.getById(id);
-      return response.data?.requiresReference || false;
+      const method = await paymentMethodService.getById(id);
+      return method.requiresReference || false;
     } catch (error) {
       console.error('Error checking payment method reference requirement:', error);
       return false;
@@ -66,16 +118,17 @@ export const paymentMethodService = {
    * @returns {Promise<Object>} Configuration object
    */
   getConfig: async (id) => {
-    const response = await paymentMethodService.getById(id);
-    const method = response.data;
+    const method = await paymentMethodService.getById(id);
 
     return {
       id: method.id,
       name: method.name,
       code: method.code,
+      channel: method.channel,
       requiresReference: method.requiresReference || false,
-      icon: paymentMethodService.getIcon(method.code),
-      color: paymentMethodService.getColor(method.code),
+      icon: method.icon,
+      color: method.color,
+      description: method.description,
       placeholder: method.requiresReference
         ? paymentMethodService.getReferencePlaceholder(method.code)
         : null,
@@ -87,50 +140,69 @@ export const paymentMethodService = {
   /**
    * Get icon name for payment method
    * @param {string} code - Payment method code
-   * @returns {string} Icon name for Material-UI
+   * @returns {string} Default icon name
    */
   getIcon: (code) => {
     const iconMap = {
-      cash: 'Payments',
-      transfer: 'AccountBalance',
-      card: 'CreditCard',
-      check: 'Receipt',
-      credit: 'AccountBalanceWallet',
-      other: 'Payment',
+      cash: 'banknote',
+      transfer: 'bank',
+      card: 'credit-card',
+      check: 'receipt',
+      credit: 'wallet',
+      digital_wallet: 'smartphone',
+      other: 'payment',
     };
 
-    return iconMap[code] || 'Payment';
+    return iconMap[code] || 'payment';
   },
 
   /**
    * Get color for payment method badge/chip
    * @param {string} code - Payment method code
-   * @returns {string} MUI color name
+   * @returns {string} Hex color code
    */
   getColor: (code) => {
     const colorMap = {
-      cash: 'success',
-      transfer: 'primary',
-      card: 'info',
-      check: 'warning',
-      credit: 'secondary',
-      other: 'default',
+      cash: '#10B981',      // Green
+      transfer: '#3B82F6',  // Blue
+      card: '#06B6D4',      // Cyan
+      check: '#F59E0B',     // Amber
+      credit: '#8B5CF6',    // Purple
+      digital_wallet: '#EC4899', // Pink
+      other: '#6B7280',     // Gray
     };
 
-    return colorMap[code] || 'default';
+    return colorMap[code] || '#6B7280';
   },
 
   /**
    * Get placeholder text for reference input
    * @param {string} code - Payment method code
+   * @param {string} channel - Payment channel (optional)
    * @returns {string} Placeholder text
    */
-  getReferencePlaceholder: (code) => {
+  getReferencePlaceholder: (code, channel = null) => {
+    // Channel-specific placeholders
+    if (channel) {
+      const channelPlaceholders = {
+        nequi: 'Ej: Número de aprobación Nequi',
+        daviplata: 'Ej: Número de aprobación Daviplata',
+        bancolombia: 'Ej: Número de transacción Bancolombia',
+        pse: 'Ej: CUS PSE',
+      };
+      
+      if (channelPlaceholders[channel]) {
+        return channelPlaceholders[channel];
+      }
+    }
+
+    // Code-specific placeholders
     const placeholderMap = {
       transfer: 'Ej: TRANS-123456',
       card: 'Ej: **** **** **** 1234',
       check: 'Ej: CHQ-789012',
       credit: 'Ej: CRED-345678',
+      digital_wallet: 'Ej: Número de aprobación',
       other: 'Número de referencia',
     };
 

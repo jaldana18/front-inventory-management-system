@@ -41,6 +41,13 @@ apiClient.interceptors.request.use(
 // Response interceptor
 apiClient.interceptors.response.use(
   (response) => {
+    // Log para debugging de bulk uploads
+    if (response.config.url?.includes('/bulk/upload')) {
+      console.log('🔍 API Response for bulk upload:', {
+        status: response.status,
+        data: response.data
+      });
+    }
     return response.data;
   },
   async (error) => {
@@ -139,7 +146,11 @@ apiClient.interceptors.response.use(
     const errorMessage = error.response?.data?.error?.message || error.response?.data?.message || error.message || 'An error occurred';
 
     // Don't show toast for 401 errors (already handled above)
-    if (error.response?.status !== 401) {
+    // Also don't show toast for bulk upload endpoints (they handle their own messages)
+    const skipToastUrls = ['/bulk/upload', '/bulk/preview'];
+    const shouldSkipToast = skipToastUrls.some(url => originalRequest.url?.includes(url));
+    
+    if (error.response?.status !== 401 && !shouldSkipToast) {
       toast.error(errorMessage);
     }
 

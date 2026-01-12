@@ -2,7 +2,7 @@ import apiClient from './api.service';
 
 /**
  * Audit Log Service
- * Handles all audit log related API calls
+ * Handles all audit log related API calls based on DOCUMENTACION_AUDIT_LOGS.md
  */
 export const auditLogService = {
   /**
@@ -11,27 +11,77 @@ export const auditLogService = {
    * @returns {Promise<import('../types/audit-log').AuditLogsResponse>}
    */
   getLogs: async (params = {}) => {
-    const response = await apiClient.get('/audit-logs', { params });
+    const response = await apiClient.get('/audit-logs-db', { params });
     return response;
   },
 
   /**
    * Get audit log statistics
-   * @param {import('../types/audit-log').AuditLogQueryParams} [params] - Optional query parameters
+   * @param {Object} [params] - Optional query parameters (startDate, endDate, companyId)
    * @returns {Promise<import('../types/audit-log').AuditStatsResponse>}
    */
   getStats: async (params = {}) => {
-    const response = await apiClient.get('/audit-logs/stats', { params });
+    const response = await apiClient.get('/audit-logs-db/stats', { params });
     return response;
   },
 
   /**
-   * Export logs to CSV
+   * Get entity history (all changes for a specific entity)
+   * @param {string} entityType - Type of entity (Product, User, Customer, etc.)
+   * @param {number} entityId - ID of the entity
+   * @param {Object} [params] - Optional query parameters
+   * @returns {Promise<import('../types/audit-log').AuditLogsResponse>}
+   */
+  getEntityHistory: async (entityType, entityId, params = {}) => {
+    const response = await apiClient.get(`/audit-logs-db/entity/${entityType}/${entityId}`, { params });
+    return response;
+  },
+
+  /**
+   * Get user activity (all actions performed by a specific user)
+   * @param {number} userId - User ID
+   * @param {Object} [params] - Optional query parameters
+   * @returns {Promise<import('../types/audit-log').AuditLogsResponse>}
+   */
+  getUserActivity: async (userId, params = {}) => {
+    const response = await apiClient.get(`/audit-logs-db/user/${userId}`, { params });
+    return response;
+  },
+
+  /**
+   * Get available actions catalog
+   * @returns {Promise<string[]>}
+   */
+  getAvailableActions: async () => {
+    const response = await apiClient.get('/audit-logs-db/filters/actions');
+    return response.data || [];
+  },
+
+  /**
+   * Get available entity types catalog
+   * @returns {Promise<string[]>}
+   */
+  getAvailableEntityTypes: async () => {
+    const response = await apiClient.get('/audit-logs-db/filters/entity-types');
+    return response.data || [];
+  },
+
+  /**
+   * Get available modules catalog
+   * @returns {Promise<string[]>}
+   */
+  getAvailableModules: async () => {
+    const response = await apiClient.get('/audit-logs-db/filters/modules');
+    return response.data || [];
+  },
+
+  /**
+   * Export logs to CSV (legacy - if needed)
    * @param {import('../types/audit-log').AuditLogQueryParams} params - Query parameters
    * @returns {Promise<void>}
    */
   exportLogs: async (params = {}) => {
-    const response = await apiClient.get('/audit-logs/export', {
+    const response = await apiClient.get('/audit-logs-db/export', {
       params,
       responseType: 'blob',
     });
@@ -46,24 +96,6 @@ export const auditLogService = {
     link.click();
     link.remove();
     window.URL.revokeObjectURL(url);
-  },
-
-  /**
-   * Get available operations
-   * @returns {Promise<string[]>}
-   */
-  getAvailableOperations: async () => {
-    const response = await apiClient.get('/audit-logs/operations');
-    return response.data || [];
-  },
-
-  /**
-   * Get available log types
-   * @returns {Promise<string[]>}
-   */
-  getAvailableTypes: async () => {
-    const response = await apiClient.get('/audit-logs/types');
-    return response.data || [];
   },
 };
 

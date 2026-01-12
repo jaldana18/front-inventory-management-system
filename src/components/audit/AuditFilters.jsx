@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -14,126 +14,195 @@ import {
   AccordionDetails,
   Chip,
   Stack,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { DateRangePicker } from '../common/DateRangePicker';
+import { auditLogService } from '../../services/auditLog.service';
 
-const OPERATIONS_BY_MODULE = {
-  sales: {
-    label: '🛒 Ventas',
-    operations: [
-      { value: 'sale_created', label: 'Venta creada' },
-      { value: 'sale_confirmed', label: 'Venta confirmada' },
-      { value: 'sale_cancelled', label: 'Venta cancelada' },
-      { value: 'credit_note_created', label: 'Nota de crédito' },
-      { value: 'quote_converted_to_invoice', label: 'Cotización → Factura' },
-      { value: 'remission_created', label: 'Remisión creada' },
-      { value: 'sale_dispatched', label: 'Venta despachada' },
-      { value: 'sale_delivered', label: 'Venta entregada' },
+// Actions grouped by category based on documentation
+const ACTIONS_BY_CATEGORY = {
+  crud: {
+    label: '📝 CRUD Operations',
+    actions: [
+      { value: 'CREATE', label: 'Create' },
+      { value: 'UPDATE', label: 'Update' },
+      { value: 'DELETE', label: 'Delete' },
+      { value: 'READ', label: 'Read' },
+    ],
+  },
+  status: {
+    label: '🔄 Status Changes',
+    actions: [
+      { value: 'ACTIVATE', label: 'Activate' },
+      { value: 'DEACTIVATE', label: 'Deactivate' },
+    ],
+  },
+  auth: {
+    label: '🔐 Authentication',
+    actions: [
+      { value: 'LOGIN', label: 'Login' },
+      { value: 'LOGOUT', label: 'Logout' },
+      { value: 'LOGIN_FAILED', label: 'Login Failed' },
+      { value: 'PASSWORD_RESET', label: 'Password Reset' },
     ],
   },
   inventory: {
-    label: '📦 Inventario',
-    operations: [
-      { value: 'inventory_transaction_created', label: 'Transacción creada' },
-      { value: 'bulk_inventory_upload', label: 'Carga masiva Excel' },
-      { value: 'bulk_inbound_created', label: 'Entrada masiva' },
-      { value: 'bulk_outbound_created', label: 'Salida masiva' },
-      { value: 'warehouse_transfer', label: 'Transferencia' },
-      { value: 'product_auto_created', label: 'Producto auto-creado' },
+    label: '📦 Inventory',
+    actions: [
+      { value: 'STOCK_IN', label: 'Stock In' },
+      { value: 'STOCK_OUT', label: 'Stock Out' },
+      { value: 'STOCK_ADJUSTMENT', label: 'Stock Adjustment' },
+      { value: 'STOCK_TRANSFER', label: 'Stock Transfer' },
     ],
   },
-  payments: {
-    label: '💳 Pagos',
-    operations: [
-      { value: 'payment_created', label: 'Pago registrado' },
-      { value: 'payment_refunded', label: 'Pago reembolsado' },
-      { value: 'payment_cancelled', label: 'Pago cancelado' },
+  sales: {
+    label: '💰 Sales & Payments',
+    actions: [
+      { value: 'SALE_CREATED', label: 'Sale Created' },
+      { value: 'SALE_CANCELLED', label: 'Sale Cancelled' },
+      { value: 'PAYMENT_RECEIVED', label: 'Payment Received' },
     ],
   },
-  products: {
-    label: '📦 Productos',
-    operations: [
-      { value: 'product_created', label: 'Producto creado' },
-      { value: 'product_updated', label: 'Producto actualizado' },
-      { value: 'product_deleted', label: 'Producto eliminado' },
+  bulk: {
+    label: '📊 Bulk Operations',
+    actions: [
+      { value: 'BULK_IMPORT', label: 'Bulk Import' },
+      { value: 'BULK_UPDATE', label: 'Bulk Update' },
+      { value: 'BULK_DELETE', label: 'Bulk Delete' },
     ],
   },
-  users: {
-    label: '👥 Usuarios',
-    operations: [
-      { value: 'user_created', label: 'Usuario creado' },
-      { value: 'user_updated', label: 'Usuario actualizado' },
-      { value: 'user_deleted', label: 'Usuario eliminado' },
+  config: {
+    label: '⚙️ Configuration',
+    actions: [
+      { value: 'CONFIG_CHANGE', label: 'Config Change' },
     ],
   },
 };
 
+// Severity levels
+const SEVERITY_LEVELS = [
+  { value: 'info', label: 'Info', color: 'info' },
+  { value: 'warning', label: 'Warning', color: 'warning' },
+  { value: 'critical', label: 'Critical', color: 'error' },
+];
+
 /**
  * AuditFilters Component
- * Advanced filters for audit logs
+ * Advanced filters for audit logs based on DOCUMENTACION_AUDIT_LOGS.md
  */
 export const AuditFilters = ({ onFilterChange, initialFilters = {} }) => {
   const [startDate, setStartDate] = useState(initialFilters.startDate || '');
   const [endDate, setEndDate] = useState(initialFilters.endDate || '');
-  const [selectedOperations, setSelectedOperations] = useState(
-    initialFilters.operation || []
-  );
+  const [selectedActions, setSelectedActions] = useState(initialFilters.action || []);
+  const [selectedEntityTypes, setSelectedEntityTypes] = useState(initialFilters.entityType || []);
+  const [selectedModules, setSelectedModules] = useState(initialFilters.module || []);
+  const [selectedSeverity, setSelectedSeverity] = useState(initialFilters.severity || []);
   const [search, setSearch] = useState(initialFilters.search || '');
+  const [userId, setUserId] = useState(initialFilters.userId || '');
 
-  const handleOperationToggle = (operation) => {
-    setSelectedOperations((prev) =>
-      prev.includes(operation)
-        ? prev.filter((op) => op !== operation)
-        : [...prev, operation]
+  // Dynamic options from backend
+  const [availableEntityTypes, setAvailableEntityTypes] = useState([]);
+  const [availableModules, setAvailableModules] = useState([]);
+
+  useEffect(() => {
+    // Fetch available entity types and modules from backend
+    const fetchFilters = async () => {
+      try {
+        const [entityTypes, modules] = await Promise.all([
+          auditLogService.getAvailableEntityTypes(),
+          auditLogService.getAvailableModules(),
+        ]);
+        setAvailableEntityTypes(entityTypes);
+        setAvailableModules(modules);
+      } catch (error) {
+        console.error('Error fetching filter options:', error);
+      }
+    };
+
+    fetchFilters();
+  }, []);
+
+  const handleActionToggle = (action) => {
+    setSelectedActions((prev) =>
+      prev.includes(action)
+        ? prev.filter((a) => a !== action)
+        : [...prev, action]
     );
   };
 
-  const handleModuleToggle = (moduleKey) => {
-    const moduleOps = OPERATIONS_BY_MODULE[moduleKey].operations.map(
-      (op) => op.value
+  const handleCategoryToggle = (categoryKey) => {
+    const categoryActions = ACTIONS_BY_CATEGORY[categoryKey].actions.map(
+      (a) => a.value
     );
-    const allSelected = moduleOps.every((op) =>
-      selectedOperations.includes(op)
+    const allSelected = categoryActions.every((a) =>
+      selectedActions.includes(a)
     );
 
     if (allSelected) {
-      // Deselect all
-      setSelectedOperations((prev) =>
-        prev.filter((op) => !moduleOps.includes(op))
+      setSelectedActions((prev) =>
+        prev.filter((a) => !categoryActions.includes(a))
       );
     } else {
-      // Select all
-      const newOps = [...selectedOperations];
-      moduleOps.forEach((op) => {
-        if (!newOps.includes(op)) {
-          newOps.push(op);
+      const newActions = [...selectedActions];
+      categoryActions.forEach((a) => {
+        if (!newActions.includes(a)) {
+          newActions.push(a);
         }
       });
-      setSelectedOperations(newOps);
+      setSelectedActions(newActions);
     }
   };
 
-  const isModuleSelected = (moduleKey) => {
-    const moduleOps = OPERATIONS_BY_MODULE[moduleKey].operations.map(
-      (op) => op.value
+  const isCategorySelected = (categoryKey) => {
+    const categoryActions = ACTIONS_BY_CATEGORY[categoryKey].actions.map(
+      (a) => a.value
     );
-    return moduleOps.every((op) => selectedOperations.includes(op));
+    return categoryActions.every((a) => selectedActions.includes(a));
+  };
+
+  const handleEntityTypeToggle = (entityType) => {
+    setSelectedEntityTypes((prev) =>
+      prev.includes(entityType)
+        ? prev.filter((et) => et !== entityType)
+        : [...prev, entityType]
+    );
+  };
+
+  const handleModuleToggle = (module) => {
+    setSelectedModules((prev) =>
+      prev.includes(module)
+        ? prev.filter((m) => m !== module)
+        : [...prev, module]
+    );
+  };
+
+  const handleSeverityToggle = (severity) => {
+    setSelectedSeverity((prev) =>
+      prev.includes(severity)
+        ? prev.filter((s) => s !== severity)
+        : [...prev, severity]
+    );
   };
 
   const handleApplyFilters = () => {
     const filters = {
       page: 1,
       limit: 50,
-      sortOrder: 'desc',
-      type: ['business_operation'],
+      sortOrder: 'DESC',
     };
 
     if (startDate) filters.startDate = startDate;
     if (endDate) filters.endDate = endDate;
-    if (selectedOperations.length > 0)
-      filters.operation = selectedOperations;
+    if (selectedActions.length > 0) filters.action = selectedActions.join(',');
+    if (selectedEntityTypes.length > 0) filters.entityType = selectedEntityTypes.join(',');
+    if (selectedModules.length > 0) filters.module = selectedModules.join(',');
+    if (selectedSeverity.length > 0) filters.severity = selectedSeverity.join(',');
     if (search.trim()) filters.search = search.trim();
+    if (userId) filters.userId = parseInt(userId);
 
     onFilterChange(filters);
   };
@@ -141,13 +210,16 @@ export const AuditFilters = ({ onFilterChange, initialFilters = {} }) => {
   const handleResetFilters = () => {
     setStartDate('');
     setEndDate('');
-    setSelectedOperations([]);
+    setSelectedActions([]);
+    setSelectedEntityTypes([]);
+    setSelectedModules([]);
+    setSelectedSeverity([]);
     setSearch('');
+    setUserId('');
     onFilterChange({
       page: 1,
       limit: 50,
-      sortOrder: 'desc',
-      type: ['business_operation'],
+      sortOrder: 'DESC',
     });
   };
 
@@ -169,42 +241,108 @@ export const AuditFilters = ({ onFilterChange, initialFilters = {} }) => {
           />
         </Grid>
 
+        {/* User ID Filter */}
+        <Grid item xs={12} md={3}>
+          <TextField
+            fullWidth
+            label="ID de Usuario"
+            placeholder="Ej: 5"
+            type="number"
+            value={userId}
+            onChange={(e) => setUserId(e.target.value)}
+            size="small"
+          />
+        </Grid>
+
         {/* Search */}
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={3}>
           <TextField
             fullWidth
             label="Búsqueda de Texto"
-            placeholder="Buscar en detalles..."
+            placeholder="Buscar en descripción..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             size="small"
           />
         </Grid>
 
-        {/* Operations by Module */}
+        {/* Severity Levels */}
         <Grid item xs={12}>
-          <Typography
-            variant="subtitle2"
-            sx={{ mb: 1.5, fontWeight: 600, color: 'text.secondary' }}
-          >
-            🔧 Operaciones por Módulo
+          <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>
+            ⚠️ Nivel de Severidad
+          </Typography>
+          <Stack direction="row" spacing={1}>
+            {SEVERITY_LEVELS.map((severity) => (
+              <Chip
+                key={severity.value}
+                label={severity.label}
+                color={selectedSeverity.includes(severity.value) ? severity.color : 'default'}
+                onClick={() => handleSeverityToggle(severity.value)}
+                variant={selectedSeverity.includes(severity.value) ? 'filled' : 'outlined'}
+              />
+            ))}
+          </Stack>
+        </Grid>
+
+        {/* Modules */}
+        {availableModules.length > 0 && (
+          <Grid item xs={12}>
+            <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>
+              📂 Módulos del Sistema
+            </Typography>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              {availableModules.map((module) => (
+                <Chip
+                  key={module}
+                  label={module}
+                  color={selectedModules.includes(module) ? 'primary' : 'default'}
+                  onClick={() => handleModuleToggle(module)}
+                  variant={selectedModules.includes(module) ? 'filled' : 'outlined'}
+                />
+              ))}
+            </Stack>
+          </Grid>
+        )}
+
+        {/* Entity Types */}
+        {availableEntityTypes.length > 0 && (
+          <Grid item xs={12}>
+            <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>
+              📋 Tipos de Entidad
+            </Typography>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              {availableEntityTypes.map((entityType) => (
+                <Chip
+                  key={entityType}
+                  label={entityType}
+                  color={selectedEntityTypes.includes(entityType) ? 'secondary' : 'default'}
+                  onClick={() => handleEntityTypeToggle(entityType)}
+                  variant={selectedEntityTypes.includes(entityType) ? 'filled' : 'outlined'}
+                />
+              ))}
+            </Stack>
+          </Grid>
+        )}
+
+        {/* Actions by Category */}
+        <Grid item xs={12}>
+          <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>
+            🔧 Acciones
           </Typography>
 
-          {selectedOperations.length > 0 && (
+          {selectedActions.length > 0 && (
             <Box sx={{ mb: 2 }}>
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                {selectedOperations.map((op) => {
-                  const module = Object.values(OPERATIONS_BY_MODULE).find((m) =>
-                    m.operations.some((o) => o.value === op)
+                {selectedActions.map((action) => {
+                  const category = Object.values(ACTIONS_BY_CATEGORY).find((c) =>
+                    c.actions.some((a) => a.value === action)
                   );
-                  const operation = module?.operations.find(
-                    (o) => o.value === op
-                  );
+                  const actionObj = category?.actions.find((a) => a.value === action);
                   return (
                     <Chip
-                      key={op}
-                      label={operation?.label || op}
-                      onDelete={() => handleOperationToggle(op)}
+                      key={action}
+                      label={actionObj?.label || action}
+                      onDelete={() => handleActionToggle(action)}
                       size="small"
                       color="primary"
                       variant="outlined"
@@ -216,74 +354,62 @@ export const AuditFilters = ({ onFilterChange, initialFilters = {} }) => {
           )}
 
           <Grid container spacing={2}>
-            {Object.entries(OPERATIONS_BY_MODULE).map(
-              ([moduleKey, module]) => (
-                <Grid item xs={12} sm={6} md={4} key={moduleKey}>
-                  <Accordion
-                    sx={{
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      '&:before': { display: 'none' },
-                      boxShadow: 'none',
-                    }}
-                  >
-                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={isModuleSelected(moduleKey)}
-                            onChange={() => handleModuleToggle(moduleKey)}
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                        }
-                        label={
-                          <Typography variant="body2" fontWeight={600}>
-                            {module.label}
-                          </Typography>
-                        }
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </AccordionSummary>
-                    <AccordionDetails sx={{ pt: 0 }}>
-                      <FormGroup>
-                        {module.operations.map((op) => (
-                          <FormControlLabel
-                            key={op.value}
-                            control={
-                              <Checkbox
-                                checked={selectedOperations.includes(
-                                  op.value
-                                )}
-                                onChange={() =>
-                                  handleOperationToggle(op.value)
-                                }
-                                size="small"
-                              />
-                            }
-                            label={
-                              <Typography variant="body2">
-                                {op.label}
-                              </Typography>
-                            }
-                          />
-                        ))}
-                      </FormGroup>
-                    </AccordionDetails>
-                  </Accordion>
-                </Grid>
-              )
-            )}
+            {Object.entries(ACTIONS_BY_CATEGORY).map(([categoryKey, category]) => (
+              <Grid item xs={12} sm={6} md={4} key={categoryKey}>
+                <Accordion
+                  sx={{
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    '&:before': { display: 'none' },
+                    boxShadow: 'none',
+                  }}
+                >
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={isCategorySelected(categoryKey)}
+                          onChange={() => handleCategoryToggle(categoryKey)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      }
+                      label={
+                        <Typography variant="body2" fontWeight={600}>
+                          {category.label}
+                        </Typography>
+                      }
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </AccordionSummary>
+                  <AccordionDetails sx={{ pt: 0 }}>
+                    <FormGroup>
+                      {category.actions.map((action) => (
+                        <FormControlLabel
+                          key={action.value}
+                          control={
+                            <Checkbox
+                              checked={selectedActions.includes(action.value)}
+                              onChange={() => handleActionToggle(action.value)}
+                              size="small"
+                            />
+                          }
+                          label={
+                            <Typography variant="body2">{action.label}</Typography>
+                          }
+                        />
+                      ))}
+                    </FormGroup>
+                  </AccordionDetails>
+                </Accordion>
+              </Grid>
+            ))}
           </Grid>
         </Grid>
 
         {/* Action Buttons */}
         <Grid item xs={12}>
           <Stack direction="row" spacing={2} justifyContent="flex-end">
-            <Button
-              variant="outlined"
-              onClick={handleResetFilters}
-              color="inherit"
-            >
+            <Button variant="outlined" onClick={handleResetFilters} color="inherit">
               Limpiar Filtros
             </Button>
             <Button variant="contained" onClick={handleApplyFilters}>

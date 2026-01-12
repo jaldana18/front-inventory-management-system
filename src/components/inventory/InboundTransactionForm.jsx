@@ -27,10 +27,10 @@ import { translateCategories, translateUnits } from '../../utils/catalogTranslat
 import toast from 'react-hot-toast';
 
 const INBOUND_REASONS = [
-  { value: 'PURCHASE', label: 'Compra' },
-  { value: 'RETURN', label: 'Devolución' },
-  { value: 'FOUND', label: 'Encontrado' },
-  { value: 'INITIAL_STOCK', label: 'Stock Inicial' },
+  { value: 'purchase', label: 'Compra' },
+  { value: 'return', label: 'Devolución' },
+  { value: 'found', label: 'Encontrado' },
+  { value: 'initial_stock', label: 'Stock Inicial' },
 ];
 
 export default function InboundTransactionForm({ open, onClose, onSuccess }) {
@@ -92,7 +92,7 @@ export default function InboundTransactionForm({ open, onClose, onSuccess }) {
     defaultValues: {
       productId: '',
       warehouseId: getDefaultWarehouseId(userRole, userWarehouseId, ''),
-      reason: 'PURCHASE',
+      reason: 'purchase',
       quantity: '',
       unitCost: '',
       reference: '',
@@ -190,10 +190,12 @@ export default function InboundTransactionForm({ open, onClose, onSuccess }) {
       const transactionData = {
         productId: parseInt(productId),
         warehouseId: parseInt(data.warehouseId),
-        type: 'INBOUND',
+        type: 'inbound',
         reason: data.reason,
-        quantity: parseInt(data.quantity),
-        unitCost: data.unitCost ? parseFloat(data.unitCost) : undefined,
+        quantity: parseFloat(data.quantity),
+        unitCost: loadMode === 'new' 
+          ? (data.newProductCost ? parseFloat(data.newProductCost) : undefined)
+          : (data.unitCost ? parseFloat(data.unitCost) : undefined),
         reference: data.reference || undefined,
         location: data.location || undefined,
         notes: data.notes || undefined,

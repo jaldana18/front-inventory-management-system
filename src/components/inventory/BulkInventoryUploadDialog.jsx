@@ -77,13 +77,19 @@ const BulkInventoryUploadDialog = ({ open, onClose, onSuccess }) => {
     setLoading(true);
     try {
       const response = await inventoryService.bulkPreview(file, updateExisting);
-      const previewData = response.data.data || response.data;
+      
+      console.log('👁️ Preview response:', response);
+      
+      // El interceptor ya devuelve response.data
+      const previewData = response.data || response;
+      
+      console.log('📋 Preview data:', previewData);
 
       setPreview(previewData);
       setActiveStep(1);
       toast.success('Vista previa generada correctamente');
     } catch (error) {
-      console.error('Error generating preview:', error);
+      console.error('❌ Error generating preview:', error);
       toast.error(error.response?.data?.message || 'Error al generar la vista previa');
     } finally {
       setLoading(false);
@@ -101,22 +107,45 @@ const BulkInventoryUploadDialog = ({ open, onClose, onSuccess }) => {
         dryRun: false,
       });
 
-      setUploadResult(response.data.data);
+      console.log('📦 Bulk upload response:', response);
+
+      // El interceptor de axios ya devuelve response.data
+      // Estructura esperada: { success: true, data: { successCount, errorCount, errors, ... }, message: "..." }
+      const resultData = response.data || response;
+      
+      console.log('📊 Result data:', resultData);
+
+      // Validar que tengamos datos
+      if (!resultData || (resultData.successCount === undefined && resultData.errorCount === undefined)) {
+        console.error('❌ Invalid response structure:', response);
+        throw new Error('Formato de respuesta inválido del servidor');
+      }
+
+      setUploadResult(resultData);
       setActiveStep(2);
 
-      const hasErrors = response.data.data.errorCount > 0;
-      if (!hasErrors) {
-        toast.success(response.data.message);
+      const hasErrors = (resultData.errorCount || 0) > 0;
+      const successCount = resultData.successCount || 0;
+
+      if (!hasErrors && successCount > 0) {
+        toast.success(response.message || `${successCount} registros procesados exitosamente`);
+        
+        // Llamar onSuccess y cerrar después de un breve delay
         setTimeout(() => {
-          if (onSuccess) onSuccess();
+          if (onSuccess) {
+            console.log('✅ Calling onSuccess callback');
+            onSuccess();
+          }
           handleClose();
-        }, 2000);
-      } else {
-        toast.warning(response.data.message);
+        }, 1500);
+      } else if (hasErrors && successCount > 0) {
+        toast.warning(response.message || `${successCount} procesados, ${resultData.errorCount} con errores`);
+      } else if (hasErrors && successCount === 0) {
+        toast.error('No se pudo procesar ningún registro. Revise los errores.');
       }
     } catch (error) {
-      console.error('Error uploading file:', error);
-      toast.error(error.response?.data?.message || 'Error al procesar el archivo');
+      console.error('❌ Error uploading file:', error);
+      toast.error(error.message || error.response?.data?.message || 'Error al procesar el archivo');
     } finally {
       setLoading(false);
     }

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { validatePhone } from '../data/countries';
 
 /**
  * Customer validation schema
@@ -20,10 +21,18 @@ export const customerSchema = z.object({
 
   phone: z
     .string()
-    .regex(/^(\+57)?[\s]?[3][0-9]{9}$|^[0-9]{7,10}$/, 'Formato de teléfono inválido. Use formato colombiano: +57 3001234567 o 3001234567')
+    .refine((val) => {
+      if (!val) return true; // Optional field
+      return /^[0-9]+$/.test(val); // Only digits
+    }, 'Solo se permiten números')
     .optional()
     .nullable()
     .or(z.literal('')),
+
+  phoneCountryCode: z
+    .string()
+    .optional()
+    .default('CO'),
 
   documentType: z
     .string()
@@ -35,17 +44,9 @@ export const customerSchema = z.object({
   documentNumber: z
     .string()
     .min(1, 'El número de documento es requerido')
-    .min(5, 'El número de documento debe tener al menos 5 caracteres')
-    .max(20, 'El número de documento no puede exceder 20 caracteres')
-    .regex(/^[0-9A-Za-z\-]+$/, 'El documento solo puede contener letras, números y guiones')
-    .refine(
-      (val) => {
-        // Validación básica de documento
-        const numericVal = val.replace(/\D/g, '');
-        return numericVal.length >= 5;
-      },
-      { message: 'El documento debe contener al menos 5 dígitos' }
-    ),
+    .regex(/^[0-9]+$/, 'El documento solo puede contener números')
+    .min(5, 'El número de documento debe tener al menos 5 dígitos')
+    .max(15, 'El número de documento no puede exceder 15 dígitos'),
 
   customerType: z
     .string()
@@ -113,6 +114,7 @@ export const customerDefaultValues = {
   name: '',
   email: '',
   phone: '',
+  phoneCountryCode: 'CO',
   documentType: 'CC',
   documentNumber: '',
   customerType: 'retail',

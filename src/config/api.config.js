@@ -43,11 +43,11 @@ export const API_ENDPOINTS = {
 
   // ==================== INVENTORY TRANSACTIONS ====================
   transactions: {
-    list: '/transactions',
-    create: '/transactions',
-    getById: (id) => `/transactions/${id}`,
-    summary: '/transactions/summary',
-    byProduct: (productId) => `/transactions/product/${productId}`,
+    list: '/inventory/transactions',
+    create: '/inventory/transactions',
+    getById: (id) => `/inventory/transactions/${id}`,
+    summary: '/inventory/transactions/summary',
+    byProduct: (productId) => `/inventory/transactions/product/${productId}`,
   },
 
   // ==================== INVENTORY - STOCK MANAGEMENT ====================

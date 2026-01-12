@@ -18,8 +18,9 @@ import { customerSchema, customerDefaultValues, documentTypeOptions, customerTyp
 import { useCreateCustomer, useUpdateCustomer } from '../../hooks/useCustomers';
 import { useSalesStore } from '../../store/salesStore';
 import { useLanguage } from '../../context/LanguageContext';
+import PhoneInput from '../common/PhoneInput';
 
-const CustomerFormDialog = () => {
+const CustomerFormDialog = ({ onCustomerCreated } = {}) => {
   const { t } = useLanguage();
   const {
     customers: { dialogOpen, selectedCustomer },
@@ -72,7 +73,11 @@ const CustomerFormDialog = () => {
           data: payload,
         });
       } else {
-        await createMutation.mutateAsync(payload);
+        const newCustomer = await createMutation.mutateAsync(payload);
+        // Callback para notificar al componente padre sobre el cliente creado
+        if (onCustomerCreated && newCustomer) {
+          onCustomerCreated(newCustomer);
+        }
       }
       handleClose();
     } catch (error) {
@@ -239,6 +244,14 @@ const CustomerFormDialog = () => {
                           {...field}
                           id="documentNumber"
                           type="text"
+                          inputMode="numeric"
+                          maxLength={15}
+                          value={field.value}
+                          onChange={(e) => {
+                            // Solo permitir números y máximo 15 dígitos
+                            const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 15);
+                            field.onChange(value);
+                          }}
                           className="w-full pl-11 h-12 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors"
                           placeholder="Ej: 1234567890"
                         />
@@ -324,22 +337,24 @@ const CustomerFormDialog = () => {
                   <Controller
                     name="phone"
                     control={control}
-                    render={({ field }) => (
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-3.5 h-5 w-5 text-gray-400 pointer-events-none" />
-                        <input
-                          {...field}
-                          id="phone"
-                          type="text"
-                          className="w-full pl-11 h-12 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors"
-                          placeholder="+57 300 123 4567"
-                        />
-                      </div>
+                    render={({ field: phoneField }) => (
+                      <Controller
+                        name="phoneCountryCode"
+                        control={control}
+                        render={({ field: countryField }) => (
+                          <PhoneInput
+                            value={phoneField.value || ''}
+                            onChange={phoneField.onChange}
+                            countryCode={countryField.value}
+                            onCountryChange={countryField.onChange}
+                            id="phone"
+                            placeholder="Número de teléfono"
+                            error={errors.phone?.message}
+                          />
+                        )}
+                      />
                     )}
                   />
-                  {errors.phone && (
-                    <p className="text-sm text-red-500">{errors.phone.message}</p>
-                  )}
                 </div>
               </div>
 

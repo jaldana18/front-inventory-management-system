@@ -45,6 +45,8 @@ export const saleSchema = z.object({
 
   warehouseId: z.number().min(1, 'El almacén es requerido'),
 
+  paymentMethodId: z.number().min(1, 'El medio de pago es requerido'),
+
   saleDate: z
     .string()
     .min(1, 'La fecha de venta es requerida')
@@ -128,6 +130,7 @@ export const saleDefaultValues = {
   saleType: 'invoice',
   customerId: null,
   warehouseId: null,
+  paymentMethodId: null,
   saleDate: new Date().toISOString().split('T')[0],
   dueDate: null,
   items: [],
