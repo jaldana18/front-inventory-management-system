@@ -10,20 +10,20 @@ import {
   TableRow,
   TablePagination,
   IconButton,
-  Chip,
   Tooltip,
   Typography,
-  Avatar,
   Stack,
 } from '@mui/material';
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
-  MoreVert as MoreIcon,
 } from '@mui/icons-material';
 import { format } from 'date-fns';
+import { useLanguage } from '../../context/LanguageContext';
+import { translateCategory } from '../../utils/catalogTranslations';
 
 const InventoryTable = ({ data, onEdit, onDelete, onView }) => {
+  const { t, language } = useLanguage();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
@@ -34,18 +34,6 @@ const InventoryTable = ({ data, onEdit, onDelete, onView }) => {
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
-  };
-
-  const getStatusColor = (quantity, minStock) => {
-    if (quantity === 0) return 'error';
-    if (quantity <= minStock) return 'warning';
-    return 'success';
-  };
-
-  const getStatusLabel = (quantity, minStock) => {
-    if (quantity === 0) return 'Out of Stock';
-    if (quantity <= minStock) return 'Low Stock';
-    return 'In Stock';
   };
 
   const getCategoryColor = (category) => {
@@ -75,10 +63,10 @@ const InventoryTable = ({ data, onEdit, onDelete, onView }) => {
         }}
       >
         <Typography variant="h6" color="text.secondary" gutterBottom>
-          No inventory items found
+          {t('noInventoryItemsFound') || 'No inventory items found'}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Start by adding your first inventory item
+          {t('startAddingItems') || 'Start by adding your first inventory item'}
         </Typography>
       </Paper>
     );
@@ -87,23 +75,24 @@ const InventoryTable = ({ data, onEdit, onDelete, onView }) => {
   return (
     <Paper
       sx={{
-        borderRadius: 3,
+        borderRadius: 2,
         overflow: 'hidden',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+        boxShadow: 'none',
+        border: '1px solid #e2e8f0',
       }}
     >
       <TableContainer>
-        <Table>
+        <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ pl: 3 }}>PRODUCT</TableCell>
-              <TableCell>CATEGORY</TableCell>
-              <TableCell align="right">QUANTITY</TableCell>
-              <TableCell align="right">PRICE</TableCell>
-              <TableCell>STATUS</TableCell>
-              <TableCell>UPDATED</TableCell>
-              <TableCell align="right" sx={{ pr: 3 }}>
-                ACTIONS
+              <TableCell sx={{ pl: 1.5, py: 1, fontSize: '0.7rem', fontWeight: 600 }}>{t('name').toUpperCase()}</TableCell>
+              <TableCell sx={{ py: 1, fontSize: '0.7rem', fontWeight: 600 }}>{t('category').toUpperCase()}</TableCell>
+              <TableCell align="right" sx={{ py: 1, fontSize: '0.7rem', fontWeight: 600 }}>{t('quantity').toUpperCase()}</TableCell>
+              <TableCell align="right" sx={{ py: 1, fontSize: '0.7rem', fontWeight: 600 }}>{t('price').toUpperCase()}</TableCell>
+              <TableCell sx={{ py: 1, fontSize: '0.7rem', fontWeight: 600 }}>{t('status').toUpperCase()}</TableCell>
+              <TableCell sx={{ py: 1, fontSize: '0.7rem', fontWeight: 600 }}>{t('updatedAt').toUpperCase()}</TableCell>
+              <TableCell align="right" sx={{ pr: 1.5, py: 1, fontSize: '0.7rem', fontWeight: 600 }}>
+                {t('actions').toUpperCase()}
               </TableCell>
             </TableRow>
           </TableHead>
@@ -118,23 +107,12 @@ const InventoryTable = ({ data, onEdit, onDelete, onView }) => {
                 }}
                 onClick={() => onView(item)}
               >
-                <TableCell sx={{ pl: 3 }}>
-                  <Stack direction="row" spacing={2} alignItems="center">
-                    <Avatar
-                      sx={{
-                        bgcolor: 'primary.main',
-                        width: 40,
-                        height: 40,
-                        fontSize: '0.875rem',
-                        fontWeight: 600,
-                      }}
-                    >
-                      {item.name.substring(0, 2).toUpperCase()}
-                    </Avatar>
+                <TableCell sx={{ pl: 1.5, py: 0.75 }}>
+                  <Stack direction="row" spacing={1} alignItems="center">
                     <Box>
                       <Typography
-                        variant="subtitle2"
-                        sx={{ fontWeight: 600, mb: 0.25 }}
+                        variant="body2"
+                        sx={{ fontWeight: 600, lineHeight: 1.2, fontSize: '0.8rem' }}
                       >
                         {item.name}
                       </Typography>
@@ -142,7 +120,7 @@ const InventoryTable = ({ data, onEdit, onDelete, onView }) => {
                         variant="caption"
                         sx={{
                           color: 'text.secondary',
-                          fontFamily: 'monospace',
+                          fontSize: '0.65rem',
                         }}
                       >
                         {item.sku}
@@ -150,58 +128,65 @@ const InventoryTable = ({ data, onEdit, onDelete, onView }) => {
                     </Box>
                   </Stack>
                 </TableCell>
-                <TableCell>
-                  <Chip
-                    label={item.category}
-                    size="small"
+                <TableCell sx={{ py: 0.75 }}>
+                  <Typography
+                    variant="caption"
                     sx={{
-                      bgcolor: `${getCategoryColor(item.category)}15`,
                       color: getCategoryColor(item.category),
                       fontWeight: 500,
-                      border: 'none',
+                      fontSize: '0.7rem',
                     }}
-                  />
+                  >
+                    {translateCategory(item.category, language)}
+                  </Typography>
                 </TableCell>
-                <TableCell align="right">
+                <TableCell align="right" sx={{ py: 0.75 }}>
                   <Typography
                     variant="body2"
                     sx={{
-                      fontWeight: 600,
-                      color:
-                        item.quantity === 0
-                          ? 'error.main'
-                          : item.quantity <= item.minStock
-                          ? 'warning.main'
-                          : 'text.primary',
+                      fontWeight: 500,
+                      fontSize: '0.8rem',
                     }}
                   >
-                    {item.quantity}
+                    {item.totalStock !== undefined ? item.totalStock : 0}
                   </Typography>
                 </TableCell>
-                <TableCell align="right">
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    ${item.unitPrice.toFixed(2)}
+                <TableCell align="right" sx={{ py: 0.75 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.8rem' }}>
+                    ${(item.price || 0).toFixed(2)}
                   </Typography>
                 </TableCell>
-                <TableCell>
-                  <Chip
-                    label={getStatusLabel(item.quantity, item.minStock)}
-                    color={getStatusColor(item.quantity, item.minStock)}
-                    size="small"
+                <TableCell sx={{ py: 0.75 }}>
+                  <Box
                     sx={{
-                      fontWeight: 500,
-                      height: 24,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      px: 1,
+                      py: 0.25,
+                      borderRadius: 1,
+                      backgroundColor: item.isActive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(107, 114, 128, 0.1)',
                     }}
-                  />
+                  >
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontSize: '0.65rem',
+                        fontWeight: 600,
+                        color: item.isActive ? '#10b981' : '#6b7280',
+                      }}
+                    >
+                      {item.isActive ? t('active') : t('inactive')}
+                    </Typography>
+                  </Box>
                 </TableCell>
-                <TableCell>
-                  <Typography variant="body2" color="text.secondary">
+                <TableCell sx={{ py: 0.75 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                     {format(new Date(item.updatedAt), 'MMM dd, yyyy')}
                   </Typography>
                 </TableCell>
-                <TableCell align="right" sx={{ pr: 3 }}>
-                  <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                    <Tooltip title="Edit">
+                <TableCell align="right" sx={{ pr: 1.5, py: 0.75 }}>
+                  <Stack direction="row" spacing={0.25} justifyContent="flex-end">
+                    <Tooltip title={t('edit')}>
                       <IconButton
                         size="small"
                         onClick={(e) => {
@@ -210,15 +195,16 @@ const InventoryTable = ({ data, onEdit, onDelete, onView }) => {
                         }}
                         sx={{
                           color: 'primary.main',
+                          p: 0.25,
                           '&:hover': {
                             backgroundColor: 'rgba(99, 102, 241, 0.08)',
                           },
                         }}
                       >
-                        <EditIcon fontSize="small" />
+                        <EditIcon sx={{ fontSize: 16 }} />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title="Delete">
+                    <Tooltip title={t('delete')}>
                       <IconButton
                         size="small"
                         onClick={(e) => {
@@ -227,28 +213,15 @@ const InventoryTable = ({ data, onEdit, onDelete, onView }) => {
                         }}
                         sx={{
                           color: 'error.main',
+                          p: 0.25,
                           '&:hover': {
                             backgroundColor: 'rgba(239, 68, 68, 0.08)',
                           },
                         }}
                       >
-                        <DeleteIcon fontSize="small" />
+                        <DeleteIcon sx={{ fontSize: 16 }} />
                       </IconButton>
                     </Tooltip>
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                      }}
-                      sx={{
-                        color: 'text.secondary',
-                        '&:hover': {
-                          backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                        },
-                      }}
-                    >
-                      <MoreIcon fontSize="small" />
-                    </IconButton>
                   </Stack>
                 </TableCell>
               </TableRow>

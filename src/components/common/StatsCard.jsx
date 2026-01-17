@@ -46,89 +46,47 @@ const StatsCard = ({
         height: '100%',
         position: 'relative',
         overflow: 'hidden',
-        transition: 'all 0.3s ease',
-        '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: '0 12px 24px rgba(0, 0, 0, 0.1)',
-        },
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+        border: '1px solid',
+        borderColor: 'divider',
       }}
     >
-      <Box
-        sx={{
-          position: 'absolute',
-          top: 0,
-          right: 0,
-          width: '120px',
-          height: '120px',
-          background: colorScheme.bg,
-          borderRadius: '0 0 0 100%',
-        }}
-      />
-
-      <CardContent sx={{ position: 'relative', zIndex: 1 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-          <Typography
-            variant="subtitle2"
-            color="text.secondary"
-            sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}
-          >
-            {title}
-          </Typography>
+      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <Avatar
             sx={{
-              width: 48,
-              height: 48,
+              width: 36,
+              height: 36,
               background: colorScheme.gradient,
-              boxShadow: `0 4px 12px ${colorScheme.main}40`,
             }}
           >
-            {Icon && <Icon sx={{ fontSize: 24 }} />}
+            {Icon && <Icon sx={{ fontSize: 18 }} />}
           </Avatar>
-        </Box>
 
-        <Typography
-          variant="h3"
-          sx={{
-            fontWeight: 700,
-            mb: 0.5,
-            background: colorScheme.gradient,
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-          }}
-        >
-          {value}
-        </Typography>
-
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {subtitle && (
-            <Typography variant="body2" color="text.secondary">
-              {subtitle}
-            </Typography>
-          )}
-
-          {trendValue && (
-            <Box
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
               sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.5,
-                px: 1,
-                py: 0.25,
-                borderRadius: 1,
-                bgcolor: trend === 'up' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                color: trend === 'up' ? '#10b981' : '#ef4444',
+                fontWeight: 500,
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                fontSize: '0.7rem',
               }}
             >
-              {trend === 'up' ? (
-                <TrendingUp fontSize="small" />
-              ) : (
-                <TrendingDown fontSize="small" />
-              )}
-              <Typography variant="caption" sx={{ fontWeight: 600 }}>
-                {trendValue}
-              </Typography>
-            </Box>
-          )}
+              {title}
+            </Typography>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 700,
+                color: colorScheme.main,
+                lineHeight: 1.2,
+              }}
+            >
+              {value}
+            </Typography>
+          </Box>
         </Box>
       </CardContent>
     </Card>

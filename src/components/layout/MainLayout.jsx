@@ -14,6 +14,9 @@ import {
   Divider,
   Avatar,
   Stack,
+  Menu,
+  MenuItem,
+  Tooltip,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -25,27 +28,81 @@ import {
   People as SuppliersIcon,
   Notifications as NotificationsIcon,
   Search as SearchIcon,
+  Logout as LogoutIcon,
+  ManageAccounts as ManageAccountsIcon,
+  Warehouse as WarehouseIcon,
+  ViewList as StockViewIcon,
+  PointOfSale as SalesIcon,
+  Groups as CustomersIcon,
+  Receipt as InvoiceIcon,
+  History as AuditIcon,
 } from '@mui/icons-material';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/useAuth';
+import { useLanguage } from '../../context/LanguageContext';
+import LanguageIcon from '@mui/icons-material/Language';
+import { canViewMenuItem } from '../../config/roles.config';
 
 const drawerWidth = 260;
 
-const menuItems = [
-  { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-  { text: 'Inventory', icon: <InventoryIcon />, path: '/inventory' },
-  { text: 'Orders', icon: <OrdersIcon />, path: '/orders' },
-  { text: 'Suppliers', icon: <SuppliersIcon />, path: '/suppliers' },
-  { text: 'Reports', icon: <ReportsIcon />, path: '/reports' },
-  { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
-];
-
 const MainLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [langAnchor, setLangAnchor] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, logout } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
+
+  // Create menu items with translations
+  const allMenuItems = [
+    { id: 'dashboard', text: t('dashboard'), icon: <DashboardIcon />, path: '/' },
+    { id: 'inventory', text: t('inventory'), icon: <InventoryIcon />, path: '/inventory' },
+    { id: 'stock-overview', text: t('stockOverview') || 'Stock Overview', icon: <StockViewIcon />, path: '/stock-overview' },
+    { id: 'warehouses', text: t('warehouses') || 'Almacenes', icon: <WarehouseIcon />, path: '/warehouses' },
+    { id: 'sales', text: t('sales') || 'Ventas', icon: <SalesIcon />, path: '/sales' },
+    { id: 'customers', text: t('customers') || 'Clientes', icon: <CustomersIcon />, path: '/customers' },
+    { id: 'suppliers', text: t('suppliers'), icon: <SuppliersIcon />, path: '/suppliers' },
+    { id: 'reports', text: t('reports'), icon: <ReportsIcon />, path: '/reports' },
+    { id: 'audit-logs', text: t('auditLogs') || 'Auditoría', icon: <AuditIcon />, path: '/audit-logs' },
+    { id: 'settings', text: t('settings'), icon: <SettingsIcon />, path: '/settings' },
+    { id: 'users', text: 'Usuarios', icon: <ManageAccountsIcon />, path: '/users' },
+  ];
+
+  // Filter menu items based on user role
+  const menuItems = allMenuItems.filter((item) =>
+    canViewMenuItem(user?.role, item.id)
+  );
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
+  };
+
+  const handleUserMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleUserMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLanguageOpen = (event) => {
+    setLangAnchor(event.currentTarget);
+  };
+
+  const handleLanguageClose = () => {
+    setLangAnchor(null);
+  };
+
+  const handleLanguageChange = (lang) => {
+    setLanguage(lang);
+    handleLanguageClose();
+  };
+
+  const handleLogout = () => {
+    handleUserMenuClose();
+    logout();
+    navigate('/login');
   };
 
   const handleNavigation = (path) => {
@@ -142,6 +199,7 @@ const MainLayout = () => {
 
       <Box sx={{ p: 2 }}>
         <Box
+          onClick={handleUserMenuOpen}
           sx={{
             display: 'flex',
             alignItems: 'center',
@@ -165,7 +223,8 @@ const MainLayout = () => {
               fontWeight: 600,
             }}
           >
-            AD
+            {user?.firstName?.charAt(0).toUpperCase()}
+            {user?.lastName?.charAt(0).toUpperCase()}
           </Avatar>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography
@@ -178,19 +237,42 @@ const MainLayout = () => {
                 whiteSpace: 'nowrap',
               }}
             >
-              Admin User
+              {user?.firstName} {user?.lastName}
             </Typography>
             <Typography
               variant="caption"
               sx={{
                 color: 'text.secondary',
                 fontSize: '0.75rem',
+                textTransform: 'capitalize',
               }}
             >
-              Administrator
+              {user?.role || 'User'}
             </Typography>
           </Box>
         </Box>
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={handleUserMenuClose}
+          anchorOrigin={{
+            vertical: 'top',
+            horizontal: 'right',
+          }}
+          transformOrigin={{
+            vertical: 'bottom',
+            horizontal: 'right',
+          }}
+        >
+          <MenuItem disabled>
+            <Typography variant="caption">{user?.email}</Typography>
+          </MenuItem>
+          <Divider />
+          <MenuItem onClick={handleLogout}>
+            <LogoutIcon sx={{ mr: 1, fontSize: '1.25rem' }} />
+            {t('logout')}
+          </MenuItem>
+        </Menu>
       </Box>
     </Box>
   );
@@ -207,20 +289,23 @@ const MainLayout = () => {
           color: 'text.primary',
         }}
       >
-        <Toolbar sx={{ py: 1 }}>
-          <IconButton
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{
-              mr: 2,
-              display: { sm: 'none' },
-              color: 'text.primary',
-            }}
-          >
-            <MenuIcon />
-          </IconButton>
-
-          <Box sx={{ flexGrow: 1 }} />
+        <Toolbar sx={{ py: 1, display: 'flex', justifyContent: 'space-between' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <IconButton
+              edge="start"
+              onClick={handleDrawerToggle}
+              sx={{
+                mr: 2,
+                display: { sm: 'none' },
+                color: 'text.primary',
+              }}
+            >
+              <MenuIcon />
+            </IconButton>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              {t('inventory')}
+            </Typography>
+          </Box>
 
           <Stack direction="row" spacing={1}>
             <IconButton
@@ -231,6 +316,36 @@ const MainLayout = () => {
             >
               <SearchIcon />
             </IconButton>
+            <IconButton
+              onClick={handleLanguageOpen}
+              sx={{
+                color: 'text.secondary',
+                '&:hover': { color: 'primary.main', backgroundColor: 'rgba(99, 102, 241, 0.08)' },
+              }}
+              title={language === 'es' ? 'English' : 'Español'}
+            >
+              <LanguageIcon />
+            </IconButton>
+            <Menu
+              anchorEl={langAnchor}
+              open={Boolean(langAnchor)}
+              onClose={handleLanguageClose}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            >
+              <MenuItem
+                onClick={() => handleLanguageChange('es')}
+                selected={language === 'es'}
+              >
+                {t('spanish')}
+              </MenuItem>
+              <MenuItem
+                onClick={() => handleLanguageChange('en')}
+                selected={language === 'en'}
+              >
+                {t('english')}
+              </MenuItem>
+            </Menu>
             <IconButton
               sx={{
                 color: 'text.secondary',
