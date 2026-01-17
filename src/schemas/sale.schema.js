@@ -26,6 +26,12 @@ export const saleItemSchema = z.object({
     .max(100, 'El descuento no puede exceder 100%')
     .optional()
     .default(0),
+  discountPercentage: z
+    .number()
+    .min(0, 'El descuento no puede ser negativo')
+    .max(100, 'El descuento no puede exceder 100%')
+    .optional()
+    .default(0),
   subtotal: z.number().min(0, 'El subtotal no puede ser negativo').optional(),
 });
 
@@ -75,6 +81,31 @@ export const saleSchema = z.object({
   totalDiscount: z.number().min(0, 'El descuento total no puede ser negativo').optional(),
 
   total: z.number().min(0.01, 'El total debe ser mayor a 0'),
+
+  // Campos de descuento global
+  discountType: z
+    .enum(['none', 'percentage', 'fixed'])
+    .optional()
+    .default('none'),
+
+  discountPercentage: z
+    .number()
+    .min(0, 'El descuento no puede ser negativo')
+    .max(100, 'El descuento no puede exceder 100%')
+    .optional()
+    .default(0),
+
+  discountAmount: z
+    .number()
+    .min(0, 'El descuento no puede ser negativo')
+    .optional()
+    .default(0),
+
+  discountReason: z
+    .string()
+    .max(500, 'La razón del descuento no puede exceder 500 caracteres')
+    .optional()
+    .nullable(),
 
   notes: z
     .string()
@@ -138,6 +169,10 @@ export const saleDefaultValues = {
   totalTax: 0,
   totalDiscount: 0,
   total: 0,
+  discountType: 'none',
+  discountPercentage: 0,
+  discountAmount: 0,
+  discountReason: '',
   notes: '',
   status: 'draft',
 };
@@ -194,19 +229,56 @@ export const calculateItemSubtotal = (quantity, price, tax = 0, discount = 0) =>
 
 /**
  * Helper function to calculate sale totals
+ * Incluye descuentos por producto y descuento global
  */
-export const calculateSaleTotals = (items) => {
-  const subtotal = items.reduce((sum, item) => sum + item.quantity * item.price, 0);
+export const calculateSaleTotals = (items, discountType = 'none', discountPercentage = 0, discountAmount = 0) => {
+  // Calcular subtotal SIN descuentos (precio base)
+  let subtotalBase = 0;
+  let totalProductDiscounts = 0;
+
+  items.forEach((item) => {
+    const itemBase = item.quantity * item.price;
+    const itemDiscountPercent = item.discountPercentage || item.discount || 0;
+    const itemDiscountAmount = itemBase * (itemDiscountPercent / 100);
+    
+    subtotalBase += itemBase;
+    totalProductDiscounts += itemDiscountAmount;
+  });
+
+  // Subtotal después de descuentos por producto
+  const subtotalAfterProductDiscounts = subtotalBase - totalProductDiscounts;
+
+  // Aplicar descuento global sobre el subtotal después de descuentos por producto
+  let globalDiscountAmount = 0;
+  if (discountType === 'percentage' && discountPercentage > 0) {
+    globalDiscountAmount = (subtotalAfterProductDiscounts * discountPercentage) / 100;
+  } else if (discountType === 'fixed' && discountAmount > 0) {
+    globalDiscountAmount = discountAmount;
+  }
+
+  const subtotalAfterAllDiscounts = subtotalAfterProductDiscounts - globalDiscountAmount;
+  
+  // Calcular impuestos sobre el subtotal después de TODOS los descuentos
   const totalTax = items.reduce((sum, item) => {
-    return sum + item.quantity * item.price * ((item.tax || 0) / 100);
+    const itemBase = item.quantity * item.price;
+    const itemDiscountPercent = item.discountPercentage || item.discount || 0;
+    const itemAfterProductDiscount = itemBase * (1 - itemDiscountPercent / 100);
+    
+    // Proporcionar el descuento global según la participación del item
+    const itemProportion = subtotalAfterProductDiscounts > 0 
+      ? itemAfterProductDiscount / subtotalAfterProductDiscounts 
+      : 0;
+    const itemGlobalDiscount = globalDiscountAmount * itemProportion;
+    const itemAfterAllDiscounts = itemAfterProductDiscount - itemGlobalDiscount;
+    
+    return sum + itemAfterAllDiscounts * ((item.tax || 0) / 100);
   }, 0);
-  const totalDiscount = items.reduce((sum, item) => {
-    return sum + item.quantity * item.price * ((item.discount || 0) / 100);
-  }, 0);
-  const total = subtotal + totalTax - totalDiscount;
+
+  const total = subtotalAfterAllDiscounts + totalTax;
+  const totalDiscount = totalProductDiscounts + globalDiscountAmount;
 
   return {
-    subtotal: Number(subtotal.toFixed(2)),
+    subtotal: Number(subtotalBase.toFixed(2)),
     totalTax: Number(totalTax.toFixed(2)),
     totalDiscount: Number(totalDiscount.toFixed(2)),
     total: Number(total.toFixed(2)),

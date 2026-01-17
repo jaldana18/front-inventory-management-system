@@ -77,6 +77,7 @@ const SaleFormDialog = () => {
     reset,
     watch,
     setValue,
+    getValues,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(saleSchema),
@@ -89,11 +90,14 @@ const SaleFormDialog = () => {
   });
 
   const items = watch("items");
+  const discountType = watch("discountType");
+  const discountPercentage = watch("discountPercentage");
+  const discountAmount = watch("discountAmount");
 
-  // Recalculate totals when items change
+  // Recalculate totals when items or discount change
   useEffect(() => {
     if (items && items.length > 0) {
-      const totals = calculateSaleTotals(items);
+      const totals = calculateSaleTotals(items, discountType, discountPercentage, discountAmount);
       setValue("subtotal", totals.subtotal);
       setValue("totalTax", totals.totalTax);
       setValue("totalDiscount", totals.totalDiscount);
@@ -104,11 +108,34 @@ const SaleFormDialog = () => {
       setValue("totalDiscount", 0);
       setValue("total", 0);
     }
-  }, [items, setValue]);
+  }, [items, discountType, discountPercentage, discountAmount, setValue]);
 
   const onSubmit = async (data) => {
     try {
-      await createMutation.mutateAsync(data);
+      // Transformar los datos al formato esperado por el backend
+      const payload = {
+        saleType: data.saleType,
+        customerId: data.customerId,
+        warehouseId: data.warehouseId,
+        paymentMethodId: data.paymentMethodId,
+        saleDate: data.saleDate,
+        dueDate: data.dueDate || null,
+        notes: data.notes || null,
+        // Descuento global
+        discountType: data.discountType || 'none',
+        discountPercentage: data.discountType === 'percentage' ? data.discountPercentage : 0,
+        discountAmount: data.discountType === 'fixed' ? data.discountAmount : 0,
+        discountReason: data.discountReason || null,
+        // Transformar items al formato del backend
+        details: data.items.map(item => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          unitPrice: item.price, // Mapear price a unitPrice
+          discountPercentage: item.discountPercentage || item.discount || 0,
+        })),
+      };
+
+      await createMutation.mutateAsync(payload);
       toast.success('Venta creada correctamente');
       handleClose();
     } catch (error) {
@@ -181,6 +208,7 @@ const SaleFormDialog = () => {
         price: basePrice,
         tax: taxRate,
         discount: 0,
+        discountPercentage: 0,
         subtotal: subtotal,
       });
     }
@@ -191,24 +219,62 @@ const SaleFormDialog = () => {
 
   const handleQuantityChange = (index, quantity) => {
     const item = items[index];
+    const itemDiscountPercent = item.discountPercentage || item.discount || 0;
     const subtotal =
       quantity *
       item.price *
       (1 + (item.tax || 0) / 100) *
-      (1 - (item.discount || 0) / 100);
+      (1 - itemDiscountPercent / 100);
     setValue(`items.${index}.quantity`, quantity);
     setValue(`items.${index}.subtotal`, subtotal);
+    
+    // Forzar recálculo de totales
+    setTimeout(() => {
+      const currentItems = getValues("items");
+      const totals = calculateSaleTotals(currentItems, discountType, discountPercentage, discountAmount);
+      setValue("subtotal", totals.subtotal);
+      setValue("totalTax", totals.totalTax);
+      setValue("totalDiscount", totals.totalDiscount);
+      setValue("total", totals.total);
+    }, 0);
   };
 
   const handlePriceChange = (index, price) => {
     const item = items[index];
+    const itemDiscountPercent = item.discountPercentage || item.discount || 0;
     const subtotal =
       item.quantity *
       price *
       (1 + (item.tax || 0) / 100) *
-      (1 - (item.discount || 0) / 100);
+      (1 - itemDiscountPercent / 100);
     setValue(`items.${index}.price`, price);
     setValue(`items.${index}.subtotal`, subtotal);
+  };
+
+  const handleDiscountChange = (index, discountPercentage) => {
+    const item = items[index];
+    const subtotal =
+      item.quantity *
+      item.price *
+      (1 + (item.tax || 0) / 100) *
+      (1 - discountPercentage / 100);
+    setValue(`items.${index}.discountPercentage`, discountPercentage);
+    setValue(`items.${index}.discount`, discountPercentage);
+    setValue(`items.${index}.subtotal`, subtotal);
+    
+    // Forzar recálculo de totales inmediatamente
+    setTimeout(() => {
+      const currentItems = getValues("items");
+      const currentDiscountType = getValues("discountType");
+      const currentDiscountPercentage = getValues("discountPercentage");
+      const currentDiscountAmount = getValues("discountAmount");
+      
+      const totals = calculateSaleTotals(currentItems, currentDiscountType, currentDiscountPercentage, currentDiscountAmount);
+      setValue("subtotal", totals.subtotal);
+      setValue("totalTax", totals.totalTax);
+      setValue("totalDiscount", totals.totalDiscount);
+      setValue("total", totals.total);
+    }, 0);
   };
 
   const formatCurrency = (value) => {
@@ -557,9 +623,10 @@ const SaleFormDialog = () => {
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Producto</th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase w-32">Cantidad</th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase w-40">Precio</th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase w-40">Subtotal</th>
+                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase w-28">Cantidad</th>
+                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase w-36">Precio</th>
+                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase w-28">Desc. %</th>
+                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase w-36">Subtotal</th>
                         <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase w-20">Acción</th>
                       </tr>
                     </thead>
@@ -581,14 +648,31 @@ const SaleFormDialog = () => {
                             />
                           </td>
                           <td className="px-4 py-3">
+                            <p className="text-sm text-gray-600 text-right">
+                              {formatCurrency(items[index]?.price || 0)}
+                            </p>
+                          </td>
+                          <td className="px-4 py-3">
                             <input
                               type="number"
                               min="0"
+                              max="100"
                               step="0.01"
-                              value={items[index]?.price || 0}
-                              onChange={(e) =>
-                                handlePriceChange(index, parseFloat(e.target.value) || 0)
-                              }
+                              value={items[index]?.discountPercentage || items[index]?.discount || ''}
+                              onChange={(e) => {
+                                const value = parseFloat(e.target.value);
+                                if (isNaN(value)) {
+                                  handleDiscountChange(index, 0);
+                                } else {
+                                  handleDiscountChange(index, Math.min(100, Math.max(0, value)));
+                                }
+                              }}
+                              onBlur={(e) => {
+                                if (e.target.value === '' || parseFloat(e.target.value) === 0) {
+                                  handleDiscountChange(index, 0);
+                                }
+                              }}
+                              placeholder="0"
                               className="w-full h-10 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />
                           </td>
@@ -616,6 +700,165 @@ const SaleFormDialog = () => {
                   <AlertCircle className="h-12 w-12 text-blue-500 mx-auto mb-3" />
                   <p className="text-blue-700 font-medium">No hay productos agregados</p>
                   <p className="text-blue-600 text-sm mt-1">Busca y agrega productos para continuar</p>
+                </div>
+              )}
+            </div>
+
+            {/* Descuento Global */}
+            <div className="space-y-4 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-green-600" />
+                Descuento Global (Opcional)
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Tipo de Descuento */}
+                <div className="space-y-2">
+                  <label htmlFor="discountType" className="block text-sm font-semibold text-gray-700">
+                    Tipo de Descuento
+                  </label>
+                  <Controller
+                    name="discountType"
+                    control={control}
+                    render={({ field }) => (
+                      <select
+                        {...field}
+                        id="discountType"
+                        className="w-full h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors bg-white cursor-pointer"
+                      >
+                        <option value="none">Sin descuento</option>
+                        <option value="percentage">Porcentaje (%)</option>
+                        <option value="fixed">Monto fijo ($)</option>
+                      </select>
+                    )}
+                  />
+                </div>
+
+                {/* Porcentaje o Monto según tipo */}
+                {watch("discountType") === "percentage" && (
+                  <div className="space-y-2">
+                    <label htmlFor="discountPercentage" className="block text-sm font-semibold text-gray-700">
+                      Porcentaje de Descuento (%)
+                    </label>
+                    <Controller
+                      name="discountPercentage"
+                      control={control}
+                      render={({ field }) => (
+                        <input
+                          {...field}
+                          type="number"
+                          id="discountPercentage"
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          value={field.value || ''}
+                          onChange={(e) => {
+                            const value = parseFloat(e.target.value);
+                            if (isNaN(value) || e.target.value === '') {
+                              field.onChange(0);
+                            } else {
+                              field.onChange(Math.min(100, Math.max(0, value)));
+                            }
+                          }}
+                          onBlur={(e) => {
+                            if (e.target.value === '') {
+                              field.onChange(0);
+                            }
+                          }}
+                          className="w-full h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          placeholder="Ej: 10"
+                        />
+                      )}
+                    />
+                    {errors.discountPercentage && (
+                      <p className="text-sm text-red-500 flex items-center gap-1">
+                        ⚠️ {errors.discountPercentage.message}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {watch("discountType") === "fixed" && (
+                  <div className="space-y-2">
+                    <label htmlFor="discountAmount" className="block text-sm font-semibold text-gray-700">
+                      Monto del Descuento ($)
+                    </label>
+                    <Controller
+                      name="discountAmount"
+                      control={control}
+                      render={({ field }) => (
+                        <input
+                          {...field}
+                          type="number"
+                          id="discountAmount"
+                          min="0"
+                          step="0.01"
+                          value={field.value || ''}
+                          onChange={(e) => {
+                            const value = parseFloat(e.target.value);
+                            if (isNaN(value) || e.target.value === '') {
+                              field.onChange(0);
+                            } else {
+                              field.onChange(Math.max(0, value));
+                            }
+                          }}
+                          onBlur={(e) => {
+                            if (e.target.value === '') {
+                              field.onChange(0);
+                            }
+                          }}
+                          className="w-full h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          placeholder="Ej: 50000"
+                        />
+                      )}
+                    />
+                    {errors.discountAmount && (
+                      <p className="text-sm text-red-500 flex items-center gap-1">
+                        ⚠️ {errors.discountAmount.message}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Razón del Descuento */}
+                {watch("discountType") !== "none" && (
+                  <div className="space-y-2 md:col-span-3">
+                    <label htmlFor="discountReason" className="block text-sm font-semibold text-gray-700">
+                      Razón del Descuento
+                    </label>
+                    <Controller
+                      name="discountReason"
+                      control={control}
+                      render={({ field }) => (
+                        <input
+                          {...field}
+                          type="text"
+                          id="discountReason"
+                          maxLength={500}
+                          className="w-full h-12 px-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 focus:outline-none transition-colors"
+                          placeholder="Ej: Cliente frecuente, Promoción especial, etc."
+                        />
+                      )}
+                    />
+                    {errors.discountReason && (
+                      <p className="text-sm text-red-500 flex items-center gap-1">
+                        ⚠️ {errors.discountReason.message}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Preview del descuento */}
+              {watch("discountType") !== "none" && watch("subtotal") > 0 && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <p className="text-sm text-green-800">
+                    <strong>Vista previa del descuento:</strong>{" "}
+                    {watch("discountType") === "percentage" 
+                      ? `${watch("discountPercentage")}% de descuento`
+                      : `$${formatCurrency(watch("discountAmount"))} de descuento`
+                    }
+                  </p>
                 </div>
               )}
             </div>
